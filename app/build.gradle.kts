@@ -69,6 +69,9 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
     
+    // Coil Image Loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    
     // Retrofit & OkHttp
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.serialization)
@@ -79,6 +82,11 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    // Google Sign-In and Credential Manager
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.google.id)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

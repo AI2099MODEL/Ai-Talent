@@ -3,12 +3,18 @@ package com.example
 import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,24 +31,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
+import com.example.ui.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.*
 import com.example.ui.*
-import com.example.viewmodel.TalentViewModel
+import com.example.viewmodel.*
+import androidx.compose.ui.viewinterop.AndroidView
+import coil.compose.AsyncImage
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.window.Dialog
+import android.widget.Toast
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,52 +92,71 @@ fun MainNavigationContainer(modifier: Modifier = Modifier) {
         factory = TalentViewModel.Factory(app)
     )
 
-    Column(modifier = modifier.fillMaxSize().background(Slate900)) {
+    // Vibrant deep dark premium color palette for each screen that transitions smoothly
+    val animatedBgColor by animateColorAsState(
+        targetValue = when (selectedTab) {
+            0 -> androidx.compose.ui.graphics.Color.Black
+            1 -> androidx.compose.ui.graphics.Color(0xFF0A0F1D) // Deep Cosmic Dark Blue
+            2 -> androidx.compose.ui.graphics.Color(0xFF081C15) // Deep Tech Emerald Green
+            3 -> androidx.compose.ui.graphics.Color(0xFF1C1917) // Warm Deep Stone Charcoal
+            4 -> androidx.compose.ui.graphics.Color(0xFF031E2A) // Sleek Tech Cyber Cyan
+            5 -> androidx.compose.ui.graphics.Color(0xFF1E152A) // Deep Royal Purple
+            6 -> androidx.compose.ui.graphics.Color(0xFF2E0814) // Rich Deep Rose Burgundy
+            else -> Slate900
+        },
+        animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+        label = "PageBackgroundTransition"
+    )
+
+    Column(modifier = modifier.fillMaxSize().background(animatedBgColor)) {
         // App Header Banner
-        AppHeaderBanner()
+        AppHeaderBanner(viewModel)
 
         // Screen Content
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            when (selectedTab) {
-                0 -> DashboardScreen(viewModel, onNavigateToProfile = { selectedTab = 1 })
-                1 -> ProfileScreen(viewModel)
-                2 -> RoadmapScreen(viewModel)
-                3 -> AIPrepScreen(viewModel)
+            Crossfade(
+                targetState = selectedTab,
+                animationSpec = tween(durationMillis = 400),
+                label = "ScreenTransition"
+            ) { tab ->
+                when (tab) {
+                    0 -> DashboardScreen(
+                        viewModel = viewModel, 
+                        onNavigateToTab = { selectedTab = it },
+                        onNavigateToProfile = { selectedTab = 6 },
+                        onNavigateToEvents = { selectedTab = 5 }
+                    )
+                    1 -> StudyScreen(viewModel)
+                    2 -> RoadmapScreen(viewModel)
+                    3 -> AIPrepScreen(viewModel)
+                    4 -> AIImageScreen(viewModel)
+                    5 -> EventsScreen(viewModel)
+                    6 -> ResumeScreen(viewModel)
+                }
             }
         }
 
-        // Bottom Navigation Bar
+        // Bottom Navigation Bar - Pure Black with sleek glowing active states
         NavigationBar(
-            containerColor = Slate800,
-            tonalElevation = 8.dp,
-            modifier = Modifier.navigationBarsPadding()
+            containerColor = androidx.compose.ui.graphics.Color.Black,
+            tonalElevation = 12.dp,
+            modifier = Modifier
+                .navigationBarsPadding()
+                .border(width = 1.dp, color = Slate700.copy(alpha = 0.15f))
         ) {
             NavigationBarItem(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
                 modifier = Modifier.testTag("nav_dashboard"),
                 icon = { Icon(Icons.Default.Home, contentDescription = "Dashboard") },
-                label = { Text("Dashboard", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                label = { Text("Home", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                alwaysShowLabel = false,
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = GlowingAmber,
                     selectedTextColor = GlowingAmber,
                     unselectedIconColor = Slate600,
                     unselectedTextColor = Slate600,
-                    indicatorColor = Slate700
-                )
-            )
-            NavigationBarItem(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                modifier = Modifier.testTag("nav_profile"),
-                icon = { Icon(Icons.Default.AccountCircle, contentDescription = "AI Profile") },
-                label = { Text("AI Profile", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = GlowingAmber,
-                    selectedTextColor = GlowingAmber,
-                    unselectedIconColor = Slate600,
-                    unselectedTextColor = Slate600,
-                    indicatorColor = Slate700
+                    indicatorColor = GlowingAmber.copy(alpha = 0.15f)
                 )
             )
             NavigationBarItem(
@@ -125,13 +164,14 @@ fun MainNavigationContainer(modifier: Modifier = Modifier) {
                 onClick = { selectedTab = 2 },
                 modifier = Modifier.testTag("nav_roadmap"),
                 icon = { Icon(Icons.Default.List, contentDescription = "Roadmap") },
-                label = { Text("Roadmap", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                label = { Text("Roadmap", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                alwaysShowLabel = false,
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = GlowingAmber,
                     selectedTextColor = GlowingAmber,
                     unselectedIconColor = Slate600,
                     unselectedTextColor = Slate600,
-                    indicatorColor = Slate700
+                    indicatorColor = GlowingAmber.copy(alpha = 0.15f)
                 )
             )
             NavigationBarItem(
@@ -139,13 +179,62 @@ fun MainNavigationContainer(modifier: Modifier = Modifier) {
                 onClick = { selectedTab = 3 },
                 modifier = Modifier.testTag("nav_prep"),
                 icon = { Icon(Icons.Default.Star, contentDescription = "AI Prep") },
-                label = { Text("AI Prep", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                label = { Text("AI Prep", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                alwaysShowLabel = false,
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = GlowingAmber,
                     selectedTextColor = GlowingAmber,
                     unselectedIconColor = Slate600,
                     unselectedTextColor = Slate600,
-                    indicatorColor = Slate700
+                    indicatorColor = GlowingAmber.copy(alpha = 0.15f)
+                )
+            )
+
+            NavigationBarItem(
+                selected = selectedTab == 5,
+                onClick = { selectedTab = 5 },
+                modifier = Modifier.testTag("nav_events"),
+                icon = { Icon(Icons.Default.DateRange, contentDescription = "Events") },
+                label = { Text("Events", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                alwaysShowLabel = false,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = GlowingAmber,
+                    selectedTextColor = GlowingAmber,
+                    unselectedIconColor = Slate600,
+                    unselectedTextColor = Slate600,
+                    indicatorColor = GlowingAmber.copy(alpha = 0.15f)
+                )
+            )
+
+            NavigationBarItem(
+                selected = selectedTab == 1,
+                onClick = { selectedTab = 1 },
+                modifier = Modifier.testTag("nav_study"),
+                icon = { Icon(Icons.Default.Info, contentDescription = "Study Courses") },
+                label = { Text("Study", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                alwaysShowLabel = false,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = GlowingAmber,
+                    selectedTextColor = GlowingAmber,
+                    unselectedIconColor = Slate600,
+                    unselectedTextColor = Slate600,
+                    indicatorColor = GlowingAmber.copy(alpha = 0.15f)
+                )
+            )
+
+            NavigationBarItem(
+                selected = selectedTab == 6,
+                onClick = { selectedTab = 6 },
+                modifier = Modifier.testTag("nav_resume"),
+                icon = { Icon(Icons.Default.AccountBox, contentDescription = "Resume") },
+                label = { Text("Resume", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                alwaysShowLabel = false,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = GlowingAmber,
+                    selectedTextColor = GlowingAmber,
+                    unselectedIconColor = Slate600,
+                    unselectedTextColor = Slate600,
+                    indicatorColor = GlowingAmber.copy(alpha = 0.15f)
                 )
             )
         }
@@ -153,7 +242,9 @@ fun MainNavigationContainer(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AppHeaderBanner() {
+fun AppHeaderBanner(viewModel: TalentViewModel) {
+    val isLinkedInConnected by viewModel.isLinkedInConnected.collectAsStateWithLifecycle()
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -162,8 +253,8 @@ fun AppHeaderBanner() {
                     colors = listOf(Slate800, Slate900)
                 )
             )
-            .border(width = 1.dp, color = Slate700, shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
-            .padding(horizontal = 20.dp, vertical = 14.dp)
+            .border(width = 1.dp, color = Slate700.copy(alpha = 0.5f), shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -174,30 +265,74 @@ fun AppHeaderBanner() {
                 Text(
                     text = "BITS DUBAI • 2025 BATCH",
                     color = GlowingAmber,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 2.sp
                 )
                 Text(
-                    text = "AI Talent Portal",
+                    text = "AI Placement Portal",
                     color = Color.White,
-                    fontSize = 20.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.SansSerif
                 )
             }
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(CosmicBlue.copy(alpha = 0.2f))
-                    .padding(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "BITS Dubai Star",
-                    tint = GlowingAmber,
-                    modifier = Modifier.size(24.dp)
-                )
+            
+            if (isLinkedInConnected) {
+                // Interactive LinkedIn Status Chip
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFF0077B5).copy(alpha = 0.15f))
+                        .border(1.dp, Color(0xFF0077B5).copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+                        .clickable { viewModel.disconnectLinkedIn() }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFF0077B5)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "in",
+                            color = Color.TrueWhite,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Serif
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Sync Active",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Disconnect",
+                        tint = Color.White.copy(alpha = 0.6f),
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(CosmicBlue.copy(alpha = 0.2f))
+                        .padding(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "BITS Dubai Star",
+                        tint = GlowingAmber,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
@@ -207,178 +342,385 @@ fun AppHeaderBanner() {
 // 1. DASHBOARD SCREEN
 // ==========================================
 @Composable
-fun DashboardScreen(viewModel: TalentViewModel, onNavigateToProfile: () -> Unit) {
-    val profile by viewModel.userProfile.collectAsStateWithLifecycle()
+fun DashboardScreen(
+    viewModel: TalentViewModel, 
+    onNavigateToTab: (Int) -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToEvents: () -> Unit
+) {
+    val isLinkedInConnected by viewModel.isLinkedInConnected.collectAsStateWithLifecycle()
+    val linkedInProfileUrl by viewModel.linkedInProfileUrl.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            // Welcome Card
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Slate800),
-                shape = RoundedCornerShape(16.dp),
-                border = BoxBorderDefaults.activeBorder()
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = "Welcome to the AI-Led Talent Development Program!",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "This platform is custom-built to align your academic skills with top-tier recruiter standards using state-of-the-art Gemini AI technology.",
-                        color = LightGray.copy(alpha = 0.8f),
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    )
-                }
+    val dubaiImages = listOf(
+        "https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&w=1200&q=80", // Golden Desert Dunes Sunset
+        "https://images.unsplash.com/photo-1582672060674-bc2bd8023ed0?auto=format&fit=crop&w=1200&q=80", // Museum of the Future
+        "https://images.unsplash.com/photo-1610016302534-6f67f1c968d8?auto=format&fit=crop&w=1200&q=80", // Dubai Marina skyline night
+        "https://images.unsplash.com/photo-1549918864-48ac978761a4?auto=format&fit=crop&w=1200&q=80", // Burj Khalifa night with fountain
+        "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?auto=format&fit=crop&w=1200&q=80", // Sheikh Zayed Road Light Trails
+        "https://images.unsplash.com/photo-1528702748617-c64d494307cf?auto=format&fit=crop&w=1200&q=80"  // Atlantis Palm Night View
+    )
+
+    // Slideshow index state
+    var currentImageIndex by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(4500)
+            currentImageIndex = (currentImageIndex + 1) % dubaiImages.size
+        }
+    }
+
+    // Ken Burns zoom effect setup
+    val infiniteTransition = rememberInfiniteTransition(label = "ImageZoom")
+    val zoomScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "ZoomScale"
+    )
+
+    Box(modifier = Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)) {
+        // Continuous Crossfade Image Slider
+        Crossfade(
+            targetState = currentImageIndex,
+            animationSpec = tween(durationMillis = 1200),
+            modifier = Modifier.fillMaxSize(),
+            label = "SlideshowCrossfade"
+        ) { index ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                AsyncImage(
+                    model = dubaiImages[index],
+                    contentDescription = "Immersive Dubai Landmark",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer(
+                            scaleX = zoomScale,
+                            scaleY = zoomScale
+                        ),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
             }
         }
 
-        if (profile == null) {
-            item {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Slate800),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.clickable { onNavigateToProfile() }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Setup Your AI Talent Profile",
-                                color = GlowingAmber,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Submit your CGPA, key skills, and target companies to receive a customized AI assessment report.",
-                                color = LightGray.copy(alpha = 0.6f),
-                                fontSize = 13.sp
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.ArrowForward,
-                            contentDescription = "Setup Profile",
-                            tint = CosmicBlue,
-                            modifier = Modifier.size(28.dp)
+        // Modern Vignette & Shadow gradient overlay
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f),
+                            androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.25f),
+                            androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.90f)
                         )
-                    }
+                    )
+                )
+        )
+
+        // Custom Expanding Pill Page Indicators (overlaid below the top edge of images)
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            dubaiImages.indices.forEach { idx ->
+                val isActive = currentImageIndex == idx
+                val animatedWidth by animateDpAsState(
+                    targetValue = if (isActive) 22.dp else 8.dp,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    label = "IndicatorWidth"
+                )
+                val animatedColor by animateColorAsState(
+                    targetValue = if (isActive) GlowingAmber else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.4f),
+                    label = "IndicatorColor"
+                )
+                Box(
+                    modifier = Modifier
+                        .size(height = 5.dp, width = animatedWidth)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(animatedColor)
+                )
+            }
+        }
+
+        // SCROLLABLE CONTAINER FOR ENHANCED CONTENT OVER THE SLIDESHOW
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 150.dp), // Generous padding to prevent overlapping with the bottom floating panel
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Spacer to push content down and let the gorgeous slideshow shine at the top
+            item {
+                Spacer(modifier = Modifier.height(100.dp))
+            }
+
+            // 1. BRANDING / GREETING
+            item {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                ) {
+                    Text(
+                        text = "WELCOME TO THE FUTURE",
+                        color = GlowingAmber,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp
+                    )
+                    Text(
+                        text = "Your Dubai Placement Drive",
+                        color = Color.TrueWhite, // Set text color to pure white
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Real-time AI matching with premium UAE employers & tech hubs.",
+                        color = LightGray.copy(alpha = 0.75f),
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
-        } else {
+
+            // Extra padding at the bottom of list
             item {
-                // Readiness Score Circular Meter
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+
+        // 2. COMPACT FLOATING LINKEDIN CONNECTION PANEL AT THE BOTTOM OF THE PAGE
+        val linkedinTransition = rememberInfiniteTransition(label = "LinkedInGlow")
+        val borderAlpha by linkedinTransition.animateFloat(
+            initialValue = 0.4f,
+            targetValue = 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1500, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "BorderAlpha"
+        )
+        val logoScale by linkedinTransition.animateFloat(
+            initialValue = 1.0f,
+            targetValue = 1.15f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "LogoScale"
+        )
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        ) {
+            if (!isLinkedInConnected) {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Slate800),
-                    shape = RoundedCornerShape(16.dp)
+                    colors = CardDefaults.cardColors(containerColor = Slate950.copy(alpha = 0.92f)),
+                    shape = RoundedCornerShape(18.dp),
+                    border = BorderStroke(
+                        width = 1.2.dp,
+                        color = NeonCyan.copy(alpha = borderAlpha)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "Placement Readiness Index",
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        val score = profile?.talentScore ?: 50
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.size(130.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            CircularProgressIndicator(
-                                progress = { score / 100f },
-                                modifier = Modifier.fillMaxSize(),
-                                color = if (score >= 75) Color(0xFF10B981) else if (score >= 50) GlowingAmber else Color(0xFFEF4444),
-                                strokeWidth = 12.dp,
-                                trackColor = Slate700
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .graphicsLayer {
+                                            scaleX = logoScale
+                                            scaleY = logoScale
+                                        }
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(Color(0xFF0077B5)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "in",
+                                        color = Color.TrueWhite,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Black,
+                                        fontFamily = FontFamily.Serif
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "LinkedIn Sync",
+                                        color = Color.TrueWhite,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Sync profile for recruiter placement match.",
+                                        color = LightGray.copy(alpha = 0.6f),
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.connectLinkedIn("https://linkedin.com/in/nitinjain")
+                                    android.widget.Toast.makeText(context, "LinkedIn Sandbox Connected!", android.widget.Toast.LENGTH_SHORT).show()
+                                },
+                                border = BorderStroke(1.dp, GlowingAmber.copy(alpha = 0.7f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = GlowingAmber),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                modifier = Modifier
+                                    .height(30.dp)
+                                    .testTag("dashboard_linkedin_sandbox_btn")
+                            ) {
+                                Text("Quick Sync", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            var tempUrl by remember { mutableStateOf("") }
+                            OutlinedTextField(
+                                value = tempUrl,
+                                onValueChange = { tempUrl = it },
+                                placeholder = { Text("Enter LinkedIn URL", fontSize = 11.sp, color = LightGray.copy(alpha = 0.4f)) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = NeonCyan,
+                                    unfocusedBorderColor = Slate700,
+                                    focusedTextColor = Color.TrueWhite,
+                                    unfocusedTextColor = Color.TrueWhite,
+                                    focusedContainerColor = Slate900,
+                                    unfocusedContainerColor = Slate900
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .testTag("dashboard_linkedin_input"),
+                                singleLine = true,
+                                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp, color = Color.TrueWhite)
                             )
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "$score%",
-                                    color = Color.White,
-                                    fontSize = 28.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                                Text(
-                                    text = if (score >= 75) "Recruiter Ready" else if (score >= 50) "Developing" else "Needs Prep",
-                                    color = LightGray.copy(alpha = 0.6f),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+
+                            Button(
+                                onClick = {
+                                    if (tempUrl.isNotBlank()) {
+                                        viewModel.connectLinkedIn(tempUrl)
+                                        android.widget.Toast.makeText(context, "LinkedIn Connected!", android.widget.Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        android.widget.Toast.makeText(context, "Please enter a valid LinkedIn URL", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = CosmicBlue),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                                modifier = Modifier
+                                    .height(44.dp)
+                                    .testTag("dashboard_linkedin_connect_btn")
+                            ) {
+                                Text("Connect", color = Color.TrueWhite, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
                     }
                 }
-            }
-
-            item {
-                // Current Profile Summary
+            } else {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Slate800),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = "Student Profile",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        ProfileDetailRow(label = "Name", value = profile?.name ?: "")
-                        ProfileDetailRow(label = "Career Track", value = profile?.track ?: "")
-                        ProfileDetailRow(label = "CGPA", value = String.format("%.2f", profile?.cgpa ?: 0.0))
-                        ProfileDetailRow(label = "Core Skills", value = profile?.coreSkills ?: "")
-                        ProfileDetailRow(label = "Target Companies", value = profile?.targetCompanies ?: "")
-                    }
-                }
-            }
-
-            item {
-                // AI Coach Tip Box
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = CosmicBlue.copy(alpha = 0.15f)),
+                    colors = CardDefaults.cardColors(containerColor = Slate950.copy(alpha = 0.92f)),
                     shape = RoundedCornerShape(16.dp),
-                    border = BoxBorderDefaults.glowingBorder()
+                    border = BorderStroke(1.2.dp, NeonGreen.copy(alpha = borderAlpha)),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color(0xFF0077B5)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "in",
+                                    color = Color.TrueWhite,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Black,
+                                    fontFamily = FontFamily.Serif
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(5.dp)
+                                            .clip(CircleShape)
+                                            .background(NeonGreen)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "LINKEDIN SYNCED",
+                                        color = NeonGreen,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                                Text(
+                                    text = linkedInProfileUrl,
+                                    color = Color.TrueWhite,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = {
+                                viewModel.disconnectLinkedIn()
+                                android.widget.Toast.makeText(context, "LinkedIn disconnected.", android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier
+                                .size(32.dp)
+                                .testTag("dashboard_linkedin_disconnect_btn")
+                        ) {
                             Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = "AI Coach Hint",
-                                tint = CosmicBlue
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "AI Coach Insight",
-                                color = CosmicBlue,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Disconnect",
+                                tint = androidx.compose.ui.graphics.Color.Red.copy(alpha = 0.8f),
+                                modifier = Modifier.size(16.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = profile?.assessmentFeedback ?: "Assess your profile to receive advice.",
-                            color = LightGray,
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp
-                        )
                     }
                 }
             }
@@ -407,32 +749,314 @@ fun ProfileDetailRow(label: String, value: String) {
 }
 
 // ==========================================
-// 2. PROFILE & AI ASSESSMENT SCREEN
+// 2. STUDY HUB & AI ASSESSMENT SCREEN
 // ==========================================
+data class StudyCourse(
+    val title: String,
+    val provider: String,
+    val cost: String,
+    val certification: String,
+    val hasFreeCertificate: Boolean,
+    val yearTarget: String, // "2nd Year", "3rd Year", "4th Year"
+    val category: String, // "AI & ML", "Cloud", "Robotics"
+    val description: String,
+    val officialUrl: String
+)
+
+val studyCoursesList = listOf(
+    // === DATA STRUCTURES & ALGORITHMS (DSA) ===
+    StudyCourse(
+        title = "Harvard CS50x: Introduction to Computer Science",
+        provider = "Harvard University (edX)",
+        cost = "Free",
+        certification = "Free CS50 Course Certificate",
+        hasFreeCertificate = true,
+        yearTarget = "2nd Year",
+        category = "DSA",
+        description = "A world-renowned introduction to the intellectual enterprises of computer science and the art of programming, covering algorithms, data structures, resource management, and security.",
+        officialUrl = "https://pll.harvard.edu/course/cs50-introduction-computer-science"
+    ),
+    StudyCourse(
+        title = "Stanford Algorithms Specialization",
+        provider = "Stanford University (Coursera)",
+        cost = "Free to Audit",
+        certification = "Free Course Audit Progression",
+        hasFreeCertificate = false,
+        yearTarget = "3rd Year",
+        category = "DSA",
+        description = "A highly rigorous introduction to algorithmic analysis, divide-and-conquer, sorting, searching, graph primitives, hash tables, and dynamic programming with mathematical proofs.",
+        officialUrl = "https://www.coursera.org/specializations/algorithms"
+    ),
+    StudyCourse(
+        title = "Data Structures & Algorithms in Python",
+        provider = "Udacity & Google",
+        cost = "Free",
+        certification = "Free Course Progression Record",
+        hasFreeCertificate = true,
+        yearTarget = "2nd Year",
+        category = "DSA",
+        description = "Learn core computer science concepts including lists, stacks, queues, trees, and graphs, alongside searching, sorting, and analyzing algorithmic runtime complexity.",
+        officialUrl = "https://www.udacity.com/course/data-structures-and-algorithms-in-python--ud513"
+    ),
+    StudyCourse(
+        title = "Algorithms & Data Structures Path",
+        provider = "freeCodeCamp",
+        cost = "Free",
+        certification = "Free Verified Professional Certificate",
+        hasFreeCertificate = true,
+        yearTarget = "2nd Year",
+        category = "DSA",
+        description = "Learn Javascript algorithmic thinking, standard sorting, big-O complexity, graphs, binary trees, and dynamic programming with interactive online coding sandboxes.",
+        officialUrl = "https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/"
+    ),
+
+    // === CYBERSECURITY ===
+    StudyCourse(
+        title = "Introduction to Cybersecurity",
+        provider = "Cisco Networking Academy",
+        cost = "Free",
+        certification = "Free Official Cisco Badge & Certificate",
+        hasFreeCertificate = true,
+        yearTarget = "2nd Year",
+        category = "Cybersecurity",
+        description = "Understand the foundational cybersecurity landscape: defensive architecture, malware analysis, network packet scanning, cryptography basics, and risk management.",
+        officialUrl = "https://skillsforall.com/course/introduction-to-cybersecurity"
+    ),
+    StudyCourse(
+        title = "Google Cybersecurity Professional Certificate",
+        provider = "Google (Coursera)",
+        cost = "Free to Audit",
+        certification = "Free Audit Course Access",
+        hasFreeCertificate = false,
+        yearTarget = "3rd Year",
+        category = "Cybersecurity",
+        description = "Eight-course professional series covering network security, Linux command line utilities, database security with SQL, python scripting, and SIEM security logs (Splunk & Chronicle).",
+        officialUrl = "https://www.coursera.org/professional-certificates/google-cybersecurity"
+    ),
+    StudyCourse(
+        title = "Certified in Cybersecurity (CC)",
+        provider = "ISC2",
+        cost = "Free Training & Exam",
+        certification = "Free Official ISC2 Professional Certification",
+        hasFreeCertificate = true,
+        yearTarget = "4th Year",
+        category = "Cybersecurity",
+        description = "Access official entry-level security credentials. Covers access control systems, security principles, incident response, network security, and security operations center practices.",
+        officialUrl = "https://www.isc2.org/Certifications/Certified-in-Cybersecurity"
+    ),
+
+    // === SOFTWARE ENGINEERING ===
+    StudyCourse(
+        title = "Software Engineering Virtual Experience",
+        provider = "J.P. Morgan (Forage)",
+        cost = "Free",
+        certification = "Free Shareable Virtual Experience Certificate",
+        hasFreeCertificate = true,
+        yearTarget = "3rd Year",
+        category = "Software Eng",
+        description = "Gain hands-on software engineering experience: interface with financial data feeds, construct interactive web data visualization dashboards, patch components, and write unit tests.",
+        officialUrl = "https://www.theforage.com/virtual-experience-programs/software-engineering"
+    ),
+    StudyCourse(
+        title = "Responsive Web Design Certification",
+        provider = "freeCodeCamp",
+        cost = "Free",
+        certification = "Free Verified Developer Certification",
+        hasFreeCertificate = true,
+        yearTarget = "2nd Year",
+        category = "Software Eng",
+        description = "Master robust frontend engineering from first principles: learn semantic HTML5 markup, responsive CSS layout styling (Flexbox/Grid), accessibility guidelines, and media queries.",
+        officialUrl = "https://www.freecodecamp.org/learn/2022/responsive-web-design/"
+    ),
+    StudyCourse(
+        title = "Software Design & Architecture",
+        provider = "University of Alberta (Coursera)",
+        cost = "Free to Audit",
+        certification = "Free Course Audit Progression",
+        hasFreeCertificate = false,
+        yearTarget = "3rd Year",
+        category = "Software Eng",
+        description = "Learn how to write clean, modular, and maintainable systems using SOLID design principles, structural/behavioral patterns, and enterprise architectural blueprints.",
+        officialUrl = "https://www.coursera.org/specializations/software-design-architecture"
+    ),
+    StudyCourse(
+        title = "Git & GitHub Version Control Fundamentals",
+        provider = "GitHub Skills",
+        cost = "Free",
+        certification = "Free GitHub Profile Trophies & Badges",
+        hasFreeCertificate = true,
+        yearTarget = "2nd Year",
+        category = "Software Eng",
+        description = "A practical sequence of interactive repository exercises: branches, commit histories, merging, resolving visual conflicts, pull requests, and automated GitHub actions workflows.",
+        officialUrl = "https://skills.github.com/"
+    ),
+    StudyCourse(
+        title = "Full Stack Open (React, Node, Express, GraphQL)",
+        provider = "University of Helsinki",
+        cost = "Free",
+        certification = "Free Full Stack Developer Certificate & Credits",
+        hasFreeCertificate = true,
+        yearTarget = "3rd Year",
+        category = "Software Eng",
+        description = "Deep-dive into modern JavaScript/TypeScript web architectures. Learn single-page apps, REST/GraphQL APIs, database persistence, Docker containers, and CI/CD automation.",
+        officialUrl = "https://fullstackopen.com/en/"
+    ),
+
+    // === AI & ML ===
+    StudyCourse(
+        title = "Microsoft Azure AI Fundamentals",
+        provider = "Microsoft Learn",
+        cost = "Free",
+        certification = "Free Digital Badge & Learning Path Trophy",
+        hasFreeCertificate = true,
+        yearTarget = "2nd Year",
+        category = "AI & ML",
+        description = "Master machine learning models, computer vision, and NLP services directly on Azure. Complete the modules online at zero cost to earn your free MS Learn digital trophy.",
+        officialUrl = "https://learn.microsoft.com/en-us/training/paths/get-started-with-artificial-intelligence-on-azure/"
+    ),
+    StudyCourse(
+        title = "Generative AI Fundamentals Specialization",
+        provider = "Google Cloud",
+        cost = "Free",
+        certification = "Free Verified GenAI Badge & Certificate",
+        hasFreeCertificate = true,
+        yearTarget = "4th Year",
+        category = "AI & ML",
+        description = "Understand Large Language Models, Google Vertex AI, image generation models, and attention mechanisms. Ideal for CS capstone students.",
+        officialUrl = "https://www.cloudskillsboost.google/course_templates/556"
+    ),
+    StudyCourse(
+        title = "IBM AI Foundations & Conversational Agents",
+        provider = "Cognitive Class (IBM)",
+        cost = "Free",
+        certification = "Free Professional Certificate & IBM Badge",
+        hasFreeCertificate = true,
+        yearTarget = "3rd Year",
+        category = "AI & ML",
+        description = "Learn natural language processing, dialog systems, and build and deploy intelligent chatbot agents on real cloud websites.",
+        officialUrl = "https://cognitiveclass.ai/courses/how-to-build-chatbots"
+    ),
+    StudyCourse(
+        title = "Microsoft Azure Machine Learning Specialist Path",
+        provider = "Microsoft Learn",
+        cost = "Free",
+        certification = "Free Microsoft Digital Learning Trophy",
+        hasFreeCertificate = true,
+        yearTarget = "3rd Year",
+        category = "Cloud",
+        description = "Design and build production-grade machine learning models, perform hyperparameter tuning, and scale/deploy models directly via Azure Machine Learning workspaces.",
+        officialUrl = "https://learn.microsoft.com/en-us/training/paths/build-ml-models-with-azure-ml/"
+    ),
+    StudyCourse(
+        title = "Advanced Deep Learning & PyTorch Models",
+        provider = "PyTorch Foundation",
+        cost = "Free",
+        certification = "Free Open-Source Community Certificate",
+        hasFreeCertificate = true,
+        yearTarget = "4th Year",
+        category = "AI & ML",
+        description = "Learn to write neural networks, customized backpropagation, transformers, and deep reinforcement learning loops in PyTorch.",
+        officialUrl = "https://pytorch.org/tutorials/"
+    ),
+    StudyCourse(
+        title = "Microsoft Azure NLP & Speech Solutions Path",
+        provider = "Microsoft Learn",
+        cost = "Free",
+        certification = "Free Microsoft NLP Learning Badge",
+        hasFreeCertificate = true,
+        yearTarget = "4th Year",
+        category = "AI & ML",
+        description = "Learn how to build, manage, and deploy cognitive search solutions, custom computer vision, speech models, and AI agent frameworks for NLP.",
+        officialUrl = "https://learn.microsoft.com/en-us/training/paths/deploy-nlp-solutions-azure-cognitive-services/"
+    ),
+
+    // === CLOUD ===
+    StudyCourse(
+        title = "Google Cloud Computing Foundations",
+        provider = "Google Cloud Skills Boost",
+        cost = "Free",
+        certification = "Free Cloud Foundations Quest Badge",
+        hasFreeCertificate = true,
+        yearTarget = "2nd Year",
+        category = "Cloud",
+        description = "Comprehensive study of cloud architecture, container management, network virtualization, and database services.",
+        officialUrl = "https://www.cloudskillsboost.google/paths/11"
+    ),
+    StudyCourse(
+        title = "Microsoft Power Platform Developer Path",
+        provider = "Microsoft Learn",
+        cost = "Free",
+        certification = "Free Microsoft Developer Badge",
+        hasFreeCertificate = true,
+        yearTarget = "2nd Year",
+        category = "Cloud",
+        description = "Create enterprise low-code systems, automate workflows, and design smart interfaces using Microsoft AI Builder integrations.",
+        officialUrl = "https://learn.microsoft.com/en-us/training/paths/power-plat-dev-connect/"
+    ),
+
+    // === ROBOTICS ===
+    StudyCourse(
+        title = "Introduction to Robotics & Microcontrollers",
+        provider = "Great Learning Academy",
+        cost = "Free",
+        certification = "Free Shareable Course Certificate",
+        hasFreeCertificate = true,
+        yearTarget = "2nd Year",
+        category = "Robotics",
+        description = "An introductory curriculum covering robotic manipulators, motor control systems, sensor integration, and kinematics models.",
+        officialUrl = "https://www.mygreatlearning.com/academy/learn-for-free/courses/introduction-to-robotics"
+    ),
+    StudyCourse(
+        title = "UiPath Automation & Software Robotics",
+        provider = "UiPath Academy",
+        cost = "Free",
+        certification = "Free RPA Professional Certification",
+        hasFreeCertificate = true,
+        yearTarget = "3rd Year",
+        category = "Robotics",
+        description = "Deep dive into Robotic Process Automation (RPA), workflow designs, optical character recognition, and programming system robots.",
+        officialUrl = "https://academy.uipath.com/"
+    ),
+    StudyCourse(
+        title = "Modern Robotics: Mechanics and Planning",
+        provider = "Northwestern University (Coursera)",
+        cost = "Free to Audit",
+        certification = "Free Course Progression & Audit Badge",
+        hasFreeCertificate = false,
+        yearTarget = "4th Year",
+        category = "Robotics",
+        description = "Mathematical foundations of robotic motion, forward/inverse kinematics, velocity kinematics, singularity analysis, and trajectory planning.",
+        officialUrl = "https://www.coursera.org/specializations/modernrobotics"
+    ),
+    StudyCourse(
+        title = "Robot Operating System (ROS) Foundations",
+        provider = "ROS Community / ConstructSim",
+        cost = "Free Tutorials",
+        certification = "Free Community Developer Badge",
+        hasFreeCertificate = true,
+        yearTarget = "3rd Year",
+        category = "Robotics",
+        description = "Master robot development with ROS. Coordinate nodes, publish topics, listen to services, and run Gazebo physics simulator engines.",
+        officialUrl = "https://www.ros.org/blog/getting-started-with-ros-online-courses/"
+    )
+)
+
 @Composable
-fun ProfileScreen(viewModel: TalentViewModel) {
-    val profile by viewModel.userProfile.collectAsStateWithLifecycle()
-    val isAssessing by viewModel.isAssessing.collectAsStateWithLifecycle()
+fun StudyScreen(viewModel: TalentViewModel) {
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
 
-    var name by remember { mutableStateOf(profile?.name ?: "") }
-    var track by remember { mutableStateOf(profile?.track ?: "Software Engineer") }
-    var cgpaText by remember { mutableStateOf(profile?.cgpa?.toString() ?: "") }
-    var skills by remember { mutableStateOf(profile?.coreSkills ?: "") }
-    var companies by remember { mutableStateOf(profile?.targetCompanies ?: "") }
+    val completedCourses by viewModel.completedCourses.collectAsStateWithLifecycle()
+    val courseProgress by viewModel.courseProgress.collectAsStateWithLifecycle()
 
-    var dropdownExpanded by remember { mutableStateOf(false) }
-    val trackOptions = listOf("Software Engineer", "AI/ML Engineer", "Data Analyst", "Product Manager")
+    val activeQuiz by viewModel.activeQuiz.collectAsStateWithLifecycle()
+    val isGeneratingQuiz by viewModel.isGeneratingQuiz.collectAsStateWithLifecycle()
+    val quizAnswers by viewModel.quizAnswers.collectAsStateWithLifecycle()
+    val quizSubmitted by viewModel.quizSubmitted.collectAsStateWithLifecycle()
 
-    // Update form fields if database changes (e.g., initial load)
-    LaunchedEffect(profile) {
-        profile?.let {
-            name = it.name
-            track = it.track
-            cgpaText = it.cgpa.toString()
-            skills = it.coreSkills
-            companies = it.targetCompanies
-        }
-    }
+    // Filters for study courses
+    var selectedYear by remember { mutableStateOf("All") }
+    var selectedSubject by remember { mutableStateOf("All") }
 
     LazyColumn(
         modifier = Modifier
@@ -440,183 +1064,562 @@ fun ProfileScreen(viewModel: TalentViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Study Hub Branding Header
         item {
-            Text(
-                text = "Setup AI Talent Profile",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Provide your current credentials to trigger the AI-led evaluation model.",
-                color = LightGray.copy(alpha = 0.6f),
-                fontSize = 13.sp
-            )
+            Column {
+                Text(
+                    text = "DUB-AI TALENT STUDY HUB",
+                    color = GlowingAmber,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = "Curated free certifications & latest CS curriculums covering DSA, Cybersecurity, Software Engineering, AI/ML, Cloud, and Robotics.",
+                    color = LightGray.copy(alpha = 0.7f),
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
+            }
         }
 
+        // Global Study Progress Tracker Card
         item {
-            Column(
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Slate800),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Slate800, shape = RoundedCornerShape(16.dp))
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .border(BorderStroke(1.dp, Slate700.copy(alpha = 0.5f)), RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                // Name Field
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Student Name") },
-                    modifier = Modifier.fillMaxWidth().testTag("profile_name_input"),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = CosmicBlue,
-                        unfocusedBorderColor = Slate700
-                    )
-                )
-
-                // Track Dropdown Selection
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = track,
-                        onValueChange = { },
-                        readOnly = true,
-                        label = { Text("Target Career Track") },
-                        modifier = Modifier.fillMaxWidth().clickable { dropdownExpanded = true },
-                        trailingIcon = {
-                            IconButton(onClick = { dropdownExpanded = true }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Open tracks", tint = Color.White)
-                            }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = CosmicBlue,
-                            unfocusedBorderColor = Slate700
-                        )
-                    )
-                    DropdownMenu(
-                        expanded = dropdownExpanded,
-                        onDismissRequest = { dropdownExpanded = false },
-                        modifier = Modifier.background(Slate800)
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        trackOptions.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option, color = Color.White) },
-                                onClick = {
-                                    track = option
-                                    dropdownExpanded = false
-                                }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "STUDY JOURNEY TRACKER",
+                                color = LightGray.copy(alpha = 0.6f),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Academic Curriculum Progress",
+                                color = androidx.compose.ui.graphics.Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(GlowingAmber.copy(alpha = 0.15f))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "${completedCourses.size} of ${studyCoursesList.size} Completed",
+                                color = GlowingAmber,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black
                             )
                         }
                     }
-                }
-
-                // CGPA field (BITS Pilani uses a 10.0 scale)
-                OutlinedTextField(
-                    value = cgpaText,
-                    onValueChange = { cgpaText = it },
-                    label = { Text("Cumulative GPA (CGPA out of 10.0)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth().testTag("profile_cgpa_input"),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = CosmicBlue,
-                        unfocusedBorderColor = Slate700
-                    )
-                )
-
-                // Core Skills
-                OutlinedTextField(
-                    value = skills,
-                    onValueChange = { skills = it },
-                    label = { Text("Core Skills (e.g. Java, Python, SQL, Tableau)") },
-                    modifier = Modifier.fillMaxWidth().testTag("profile_skills_input"),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = CosmicBlue,
-                        unfocusedBorderColor = Slate700
-                    )
-                )
-
-                // Target companies
-                OutlinedTextField(
-                    value = companies,
-                    onValueChange = { companies = it },
-                    label = { Text("Target Recruiters (e.g. Amazon, Noon, Careem)") },
-                    modifier = Modifier.fillMaxWidth().testTag("profile_companies_input"),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = CosmicBlue,
-                        unfocusedBorderColor = Slate700
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Submit Action Button
-                Button(
-                    onClick = {
-                        val cgpaVal = cgpaText.toDoubleOrNull() ?: 7.0
-                        viewModel.runAssessment(name, track, cgpaVal, skills, companies)
-                    },
-                    modifier = Modifier.fillMaxWidth().height(50.dp).testTag("profile_submit_button"),
-                    colors = ButtonDefaults.buttonColors(containerColor = CosmicBlue),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = name.isNotBlank() && skills.isNotBlank() && !isAssessing
-                ) {
-                    if (isAssessing) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("AI is Evaluating...", color = Color.White, fontWeight = FontWeight.Bold)
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    val globalProgressValue = if (studyCoursesList.isNotEmpty()) {
+                        completedCourses.size.toFloat() / studyCoursesList.size
                     } else {
-                        Text("Run AI Talent Assessment", color = Color.White, fontWeight = FontWeight.Bold)
+                        0f
+                    }
+                    
+                    LinearProgressIndicator(
+                        progress = { globalProgressValue },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        color = GlowingAmber,
+                        trackColor = Slate700
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = if (globalProgressValue >= 1f) {
+                            "🎉 Spectacular! You have completed all recommended curriculums."
+                        } else if (globalProgressValue > 0.5f) {
+                            "🔥 Incredible progress! You are more than halfway through your prep."
+                        } else if (globalProgressValue > 0f) {
+                            "🚀 Great start! Keep pushing to unlock peak placement readiness."
+                        } else {
+                            "🎯 Select a course below and start tracking your learning journey!"
+                        },
+                        color = LightGray.copy(alpha = 0.8f),
+                        fontSize = 11.sp,
+                        fontStyle = FontStyle.Italic
+                    )
+                }
+            }
+        }
+
+        // Horizontal Year Filter Row
+        item {
+            Column {
+                Text(
+                    text = "Academic Year Focus:",
+                    color = androidx.compose.ui.graphics.Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+                val years = listOf("All", "2nd Year", "3rd Year", "4th Year")
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(years) { year ->
+                        val isSelected = selectedYear == year
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (isSelected) GlowingAmber else Slate800)
+                                .clickable { selectedYear = year }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = year,
+                                color = if (isSelected) Slate900 else androidx.compose.ui.graphics.Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // Display Assessment feedback
-        if (profile != null && profile!!.assessmentFeedback.isNotEmpty()) {
+        // Horizontal Subject/Category Filter Row
+        item {
+            Column {
+                Text(
+                    text = "Core Subject Domain:",
+                    color = androidx.compose.ui.graphics.Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+                val subjects = listOf("All", "DSA", "Cybersecurity", "Software Eng", "AI & ML", "Cloud", "Robotics")
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(subjects) { subj ->
+                        val isSelected = selectedSubject == subj
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (isSelected) NeonCyan else Slate800)
+                                .clickable { selectedSubject = subj }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = subj,
+                                color = if (isSelected) Slate900 else androidx.compose.ui.graphics.Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // List matching courses
+        val filteredCourses = studyCoursesList.filter { course ->
+            val matchesYear = selectedYear == "All" || course.yearTarget == selectedYear
+            val matchesSubj = selectedSubject == "All" || course.category == selectedSubject
+            matchesYear && matchesSubj
+        }.sortedWith(compareByDescending { it.hasFreeCertificate }) // Prioritize free certificates
+
+        item {
+            Text(
+                text = "${filteredCourses.size} Recommended Curriculums Found",
+                color = NeonGreen,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        if (filteredCourses.isEmpty()) {
             item {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Slate800),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BoxBorderDefaults.glowingBorder()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Check, contentDescription = "Complete", tint = GlowingAmber)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Assessment Result Summary",
-                                color = GlowingAmber,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
-                            text = profile!!.assessmentFeedback,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            lineHeight = 22.sp
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "💡 Go to the 'Roadmap' tab to review your custom task items generated based on this review.",
+                            text = "No courses match the selected filters.",
                             color = LightGray.copy(alpha = 0.6f),
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
+        } else {
+            items(filteredCourses) { course ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = if (course.hasFreeCertificate) 1.5.dp else 1.dp,
+                            color = if (course.hasFreeCertificate) GlowingAmber.copy(alpha = 0.8f) else Slate700.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(16.dp)
+                        ),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Slate800)
+                ) {
+                    Column(modifier = Modifier.padding(18.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = course.provider.uppercase(),
+                                    color = NeonCyan,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.8.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = course.title,
+                                    color = androidx.compose.ui.graphics.Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            if (course.hasFreeCertificate) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(GlowingAmber.copy(alpha = 0.12f))
+                                        .border(1.dp, GlowingAmber.copy(alpha = 0.7f), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Certified",
+                                            tint = GlowingAmber,
+                                            modifier = Modifier.size(10.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "FREE CERT",
+                                            color = GlowingAmber,
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = course.description,
+                            color = LightGray.copy(alpha = 0.85f),
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Slate700)
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = course.yearTarget,
+                                    color = androidx.compose.ui.graphics.Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(CosmicBlue.copy(alpha = 0.2f))
+                                    .border(1.dp, CosmicBlue.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = course.category,
+                                    color = NeonCyan,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Progress Indicator section
+                        val progress = courseProgress[course.title] ?: 0f
+                        val isCompleted = completedCourses.contains(course.title)
+                        val currentStep = (progress * 4).toInt()
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Slate900.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .border(1.dp, Slate700.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = if (isCompleted) Icons.Default.CheckCircle else Icons.Default.Info,
+                                        contentDescription = "Progress Info",
+                                        tint = if (isCompleted) NeonGreen else NeonCyan,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Progress: ${(progress * 100).toInt()}%",
+                                        color = if (isCompleted) NeonGreen else androidx.compose.ui.graphics.Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = " ($currentStep/4 Chapters)",
+                                        color = LightGray.copy(alpha = 0.7f),
+                                        fontSize = 11.sp
+                                    )
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            val nextStep = (currentStep - 1).coerceIn(0, 4)
+                                            viewModel.updateCourseProgress(course.title, nextStep / 4f)
+                                        },
+                                        modifier = Modifier.size(26.dp).testTag("dec_progress_${course.title.replace(" ", "_")}")
+                                    ) {
+                                        Text("-", color = LightGray, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            val nextStep = (currentStep + 1).coerceIn(0, 4)
+                                            viewModel.updateCourseProgress(course.title, nextStep / 4f)
+                                        },
+                                        modifier = Modifier.size(26.dp).testTag("inc_progress_${course.title.replace(" ", "_")}")
+                                    ) {
+                                        Text("+", color = LightGray, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(6.dp))
+                            
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                color = if (isCompleted) NeonGreen else NeonCyan,
+                                trackColor = Slate700
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Mark as Complete Row
+                            Button(
+                                onClick = {
+                                    viewModel.toggleCourseCompletion(course.title)
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isCompleted) NeonGreen.copy(alpha = 0.15f) else Slate700,
+                                    contentColor = if (isCompleted) NeonGreen else androidx.compose.ui.graphics.Color.White
+                                ),
+                                border = if (isCompleted) BorderStroke(1.dp, NeonGreen) else null,
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp)
+                                    .testTag("toggle_complete_${course.title.replace(" ", "_")}")
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (isCompleted) Icons.Default.CheckCircle else Icons.Default.Check,
+                                        contentDescription = "Complete Toggle",
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (isCompleted) "Completed ✓" else "Mark as Complete",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                                   Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    try {
+                                        uriHandler.openUri(course.officialUrl)
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "Navigating to course material...", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = if (course.hasFreeCertificate) GlowingAmber else CosmicBlue),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .weight(1.1f)
+                                    .height(42.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = if (course.hasFreeCertificate) "Enroll" else "Explore",
+                                        color = if (course.hasFreeCertificate) Slate900 else androidx.compose.ui.graphics.Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowForward,
+                                        contentDescription = "Redirect",
+                                        tint = if (course.hasFreeCertificate) Slate900 else androidx.compose.ui.graphics.Color.White,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                            }
+
+                            Button(
+                                onClick = {
+                                    viewModel.loadQuizForCourse(course.title, course.category, course.description)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Slate700),
+                                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(42.dp)
+                                    .testTag("practice_quiz_${course.title.replace(" ", "_")}")
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = "Quiz Icon",
+                                        tint = NeonCyan,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Practice Quiz",
+                                        color = androidx.compose.ui.graphics.Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+    if (isGeneratingQuiz) {
+        Dialog(onDismissRequest = {}) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Slate900),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .border(1.dp, GlowingAmber.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(color = GlowingAmber)
+                    Text(
+                        text = "AI Agent is crafting your 5-question multiple choice practice quiz based on the course syllabus...",
+                        color = androidx.compose.ui.graphics.Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+
+    activeQuiz?.let { quiz ->
+        QuizDialog(
+            quiz = quiz,
+            answers = quizAnswers,
+            submitted = quizSubmitted,
+            onSelectOption = { qIdx, oIdx -> viewModel.selectQuizOption(qIdx, oIdx) },
+            onSubmit = { viewModel.submitQuiz() },
+            onClose = { viewModel.clearQuiz() }
+        )
     }
 }
 
@@ -793,230 +1796,236 @@ fun RoadmapCard(item: LearningRoadmapItem, onToggleStatus: (Boolean) -> Unit) {
 // ==========================================
 @Composable
 fun AIPrepScreen(viewModel: TalentViewModel) {
-    var prepTab by remember { mutableStateOf(0) } // 0 = AI Mentor, 1 = Mock Interview
+    var isMentorExpanded by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(
-            selectedTabIndex = prepTab,
-            containerColor = Slate800,
-            contentColor = Color.White,
-            indicator = { tabPositions ->
-                TabRowDefaults.SecondaryIndicator(
-                    modifier = Modifier.tabIndicatorOffset(tabPositions[prepTab]),
-                    color = GlowingAmber
-                )
-            }
+    Box(modifier = Modifier.fillMaxSize().background(Slate900)) {
+        // Main page focused entirely on the Mock Interview Simulator
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = if (isMentorExpanded) 320.dp else 68.dp) // Leave clean space for the floating coach box
         ) {
-            Tab(
-                selected = prepTab == 0,
-                onClick = { prepTab = 0 },
-                text = { Text("AI Mentor Chat", fontWeight = FontWeight.Bold) }
-            )
-            Tab(
-                selected = prepTab == 1,
-                onClick = { prepTab = 1 },
-                text = { Text("Mock Interview", fontWeight = FontWeight.Bold) }
-            )
+            MockInterviewMainPage(viewModel)
         }
 
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            when (prepTab) {
-                0 -> MentorChatTab(viewModel)
-                1 -> MockInterviewTab(viewModel)
-            }
+        // Small, elegant floating / anchored AI Mentor Chat box
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp)
+        ) {
+            AIMentorSmallBox(
+                viewModel = viewModel,
+                isExpanded = isMentorExpanded,
+                onToggleExpand = { isMentorExpanded = !isMentorExpanded }
+            )
         }
     }
 }
 
 @Composable
-fun MentorChatTab(viewModel: TalentViewModel) {
-    val messages by viewModel.mentorMessages.collectAsStateWithLifecycle()
-    val isMentorLoading by viewModel.isMentorLoading.collectAsStateWithLifecycle()
-    var inputMsg by remember { mutableStateOf("") }
-    val listState = rememberLazyListState()
-    val focusManager = LocalFocusManager.current
-
-    // Automatically scroll to bottom when new messages arrive
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
-        }
-    }
-
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            if (messages.isEmpty()) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "No messages",
-                        tint = Slate600,
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Talk to your AI Career Coach",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
-                    )
-                    Text(
-                        text = "Ask any career questions, resume tips, or interview queries tailored for Dubai companies.",
-                        color = LightGray.copy(alpha = 0.5f),
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 24.dp)
-                    )
-                }
-            } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(messages) { msg ->
-                        val isUser = msg.sender == "user"
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(
-                                        RoundedCornerShape(
-                                            topStart = 12.dp,
-                                            topEnd = 12.dp,
-                                            bottomStart = if (isUser) 12.dp else 0.dp,
-                                            bottomEnd = if (isUser) 0.dp else 12.dp
-                                        )
-                                    )
-                                    .background(if (isUser) CosmicBlue else Slate800)
-                                    .padding(12.dp)
-                                    .widthIn(max = 280.dp)
-                            ) {
-                                Text(
-                                    text = msg.message,
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp
-                                )
-                            }
-                        }
-                    }
-                    if (isMentorLoading) {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Start
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Slate800)
-                                        .padding(12.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = GlowingAmber, strokeWidth = 2.dp)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("AI Mentor is thinking...", color = LightGray, fontSize = 12.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Input Bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = inputMsg,
-                onValueChange = { inputMsg = it },
-                placeholder = { Text("Ask about placements, resumes...") },
-                modifier = Modifier.weight(1f).testTag("mentor_message_input"),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = {
-                    if (inputMsg.trim().isNotEmpty()) {
-                        viewModel.sendMentorMessage(inputMsg)
-                        inputMsg = ""
-                        focusManager.clearFocus()
-                    }
-                }),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = CosmicBlue,
-                    unfocusedBorderColor = Slate700
-                )
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(
-                onClick = {
-                    if (inputMsg.trim().isNotEmpty()) {
-                        viewModel.sendMentorMessage(inputMsg)
-                        inputMsg = ""
-                        focusManager.clearFocus()
-                    }
-                },
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(CosmicBlue)
-                    .size(48.dp)
-                    .testTag("mentor_send_button")
-            ) {
-                Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
-fun MockInterviewTab(viewModel: TalentViewModel) {
-    val profile by viewModel.userProfile.collectAsStateWithLifecycle()
+fun MockInterviewMainPage(viewModel: TalentViewModel) {
     val activeQuestion by viewModel.currentQuestion.collectAsStateWithLifecycle()
     val isGrading by viewModel.isInterviewGrading.collectAsStateWithLifecycle()
     val gradingResult by viewModel.currentGradingResult.collectAsStateWithLifecycle()
     val historyLogs by viewModel.interviewLogs.collectAsStateWithLifecycle()
 
+    val selectedCompany by viewModel.selectedCompany.collectAsStateWithLifecycle()
+    val selectedField by viewModel.selectedField.collectAsStateWithLifecycle()
+    val selectedDifficulty by viewModel.selectedDifficulty.collectAsStateWithLifecycle()
+
     var studentAnswer by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
 
-    val track = profile?.track ?: "Software Engineer"
+    val companies = listOf("Emirates Group", "Careem", "Talabat", "Property Finder", "e& (Etisalat)", "noon.com", "Binance Dubai", "Amazon UAE")
+    val fields = listOf("Software Engineering", "Cybersecurity & Networks", "Data Structures & Algorithms", "Data Science & AI", "Cloud Computing & DevOps")
+    val difficulties = listOf("Easy", "Medium", "Hard")
+
+    // Automatically load an initial question when screen opens
+    LaunchedEffect(key1 = true) {
+        if (activeQuestion.isEmpty()) {
+            viewModel.loadDubaiMockQuestion()
+        }
+    }
+
+    // Reset student answer input when the active question changes
+    LaunchedEffect(key1 = activeQuestion) {
+        studentAnswer = ""
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text(
-                text = "Mock Technical Assessment",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Simulate technical questions configured for your target role: $track.",
-                color = LightGray.copy(alpha = 0.5f),
-                fontSize = 12.sp
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "DUBAI PLACEMENT INTERVIEWS",
+                    color = GlowingAmber,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Mock Technical Assessment",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Prepare for elite CS placements in Dubai by selecting a target company and core field below.",
+                    color = LightGray.copy(alpha = 0.6f),
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
+            }
         }
 
+        // Company Picker Row
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Target Multinational Company:",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(companies) { company ->
+                        val isSelected = company == selectedCompany
+                        val chipBgColor = if (isSelected) GlowingAmber else Slate800
+                        val chipTextColor = if (isSelected) Slate900 else Color.White
+                        val chipBorderColor = if (isSelected) GlowingAmber else Slate700
+                        
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(chipBgColor)
+                                .border(1.dp, chipBorderColor, RoundedCornerShape(8.dp))
+                                .clickable { viewModel.setCompany(company) }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .testTag("chip_company_${company.replace(" ", "_")}")
+                        ) {
+                            Text(
+                                text = company,
+                                color = chipTextColor,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // CS Field Picker Row
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Computer Science Field:",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(fields) { field ->
+                        val isSelected = field == selectedField
+                        val chipBgColor = if (isSelected) CosmicBlue else Slate800
+                        val chipTextColor = if (isSelected) Color.White else LightGray
+                        val chipBorderColor = if (isSelected) CosmicBlue else Slate700
+                        
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(chipBgColor)
+                                .border(1.dp, chipBorderColor, RoundedCornerShape(8.dp))
+                                .clickable { viewModel.setField(field) }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .testTag("chip_field_${field.replace(" ", "_")}")
+                        ) {
+                            Text(
+                                text = field,
+                                color = chipTextColor,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Difficulty Picker Row
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Difficulty Level:",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    difficulties.forEach { diff ->
+                        val isSelected = diff == selectedDifficulty
+                        val chipBgColor = if (isSelected) {
+                            when (diff) {
+                                "Easy" -> NeonGreen.copy(alpha = 0.2f)
+                                "Medium" -> GlowingAmber.copy(alpha = 0.2f)
+                                else -> Color.Red.copy(alpha = 0.2f)
+                            }
+                        } else Slate800
+                        val chipTextColor = if (isSelected) {
+                            when (diff) {
+                                "Easy" -> NeonGreen
+                                "Medium" -> GlowingAmber
+                                else -> Color.Red
+                            }
+                        } else LightGray
+                        val chipBorderColor = if (isSelected) chipTextColor else Slate700
+                        
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(chipBgColor)
+                                .border(1.dp, chipBorderColor, RoundedCornerShape(8.dp))
+                                .clickable { viewModel.setDifficulty(diff) }
+                                .padding(vertical = 8.dp)
+                                .testTag("chip_diff_$diff"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = diff,
+                                color = chipTextColor,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Active Question Card
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Slate800),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Slate700),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -1024,24 +2033,45 @@ fun MockInterviewTab(viewModel: TalentViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Question For You:",
-                            color = GlowingAmber,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 12.sp
-                        )
-                        IconButton(
-                            onClick = {
-                                viewModel.loadNewQuestion(track)
-                                studentAnswer = ""
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(GlowingAmber.copy(alpha = 0.15f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = selectedCompany.uppercase(),
+                                    color = GlowingAmber,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black
+                                )
                             }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "●  $selectedDifficulty",
+                                color = LightGray.copy(alpha = 0.6f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        IconButton(
+                            onClick = { viewModel.loadDubaiMockQuestion() },
+                            modifier = Modifier.size(28.dp).testTag("interview_refresh_question")
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = "New question", tint = Color.White)
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "New question",
+                                tint = LightGray,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Spacer(modifier = Modifier.height(10.dp))
+                    
                     Text(
-                        text = activeQuestion,
+                        text = activeQuestion.ifEmpty { "Loading placement assessment question..." },
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
@@ -1051,55 +2081,81 @@ fun MockInterviewTab(viewModel: TalentViewModel) {
             }
         }
 
+        // Student Answer Input Area
         item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Slate800, shape = RoundedCornerShape(16.dp))
-                    .padding(16.dp),
+                    .border(1.dp, Slate700.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                    .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                Text(
+                    text = "YOUR TECHNICAL ANSWER EXPLANATION",
+                    color = LightGray.copy(alpha = 0.6f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp
+                )
+                
                 OutlinedTextField(
                     value = studentAnswer,
                     onValueChange = { studentAnswer = it },
-                    placeholder = { Text("Type your technical explanation here...") },
-                    modifier = Modifier.fillMaxWidth().height(120.dp).testTag("interview_answer_input"),
-                    maxLines = 6,
+                    placeholder = { 
+                        Text(
+                            text = "Explain your technical answer. Mention algorithmic complexity, trade-offs, and design choices to score high...",
+                            fontSize = 12.sp,
+                            color = LightGray.copy(alpha = 0.4f)
+                        ) 
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(130.dp)
+                        .testTag("interview_answer_input"),
+                    maxLines = 8,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
                         focusedBorderColor = CosmicBlue,
-                        unfocusedBorderColor = Slate700
+                        unfocusedBorderColor = Slate700,
+                        focusedContainerColor = Slate900.copy(alpha = 0.4f),
+                        unfocusedContainerColor = Slate900.copy(alpha = 0.4f)
                     )
                 )
 
                 Button(
                     onClick = {
-                        viewModel.gradeInterviewAnswer(track, activeQuestion, studentAnswer)
+                        viewModel.gradeInterviewAnswer(selectedField, activeQuestion, studentAnswer)
                         focusManager.clearFocus()
                     },
-                    modifier = Modifier.fillMaxWidth().height(48.dp).testTag("interview_submit_button"),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .testTag("interview_submit_button"),
                     colors = ButtonDefaults.buttonColors(containerColor = CosmicBlue),
                     shape = RoundedCornerShape(10.dp),
                     enabled = studentAnswer.isNotBlank() && !isGrading
                 ) {
                     if (isGrading) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("AI Grading...", color = Color.White)
+                        Text("AI Grading System...", color = Color.White, fontSize = 13.sp)
                     } else {
-                        Text("Submit & Grade Answer", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Submit & Grade Answer (Free & Offline)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
             }
         }
 
+        // Grading Result Display
         if (gradingResult != null) {
             item {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Slate800),
                     shape = RoundedCornerShape(16.dp),
-                    border = BoxBorderDefaults.glowingBorder()
+                    border = BorderStroke(1.dp, GlowingAmber.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -1107,55 +2163,74 @@ fun MockInterviewTab(viewModel: TalentViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Evaluation feedback",
-                                color = GlowingAmber,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Graded",
+                                    tint = NeonGreen,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "EVALUATION FEEDBACK",
+                                    color = GlowingAmber,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(CosmicBlue.copy(alpha = 0.2f))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = "${gradingResult!!.second}/10",
+                                    text = "${gradingResult!!.second} / 10",
                                     color = Color.White,
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 15.sp
+                                    fontSize = 14.sp
                                 )
                             }
                         }
+                        
                         Spacer(modifier = Modifier.height(12.dp))
+                        
                         Text(
                             text = gradingResult!!.first,
                             color = Color.White,
                             fontSize = 13.sp,
                             lineHeight = 18.sp
                         )
+                        
                         Spacer(modifier = Modifier.height(12.dp))
+                        
                         Button(
                             onClick = {
-                                viewModel.loadNewQuestion(track)
+                                viewModel.loadDubaiMockQuestion()
                                 studentAnswer = ""
                             },
-                            modifier = Modifier.fillMaxWidth().testTag("interview_next_button"),
-                            colors = ButtonDefaults.buttonColors(containerColor = Slate700)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(38.dp)
+                                .testTag("interview_next_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = Slate700),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("Try Another Question", color = Color.White)
+                            Text("Try Another Scenario Question", color = Color.White, fontSize = 12.sp)
                         }
                     }
                 }
             }
         }
 
+        // Previous logs section
         if (historyLogs.isNotEmpty()) {
             item {
                 Text(
-                    text = "Previous Logs",
+                    text = "Assessment History Logs",
                     color = Color.White,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -1164,7 +2239,8 @@ fun MockInterviewTab(viewModel: TalentViewModel) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Slate800.copy(alpha = 0.5f)),
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, Slate700.copy(alpha = 0.3f))
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(
@@ -1174,12 +2250,12 @@ fun MockInterviewTab(viewModel: TalentViewModel) {
                             Text(
                                 text = log.track,
                                 color = LightGray.copy(alpha = 0.5f),
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "Score: ${log.score}/10",
-                                color = GlowingAmber,
+                                color = if (log.score >= 8) NeonGreen else if (log.score >= 6) GlowingAmber else Color.Red,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1193,11 +2269,246 @@ fun MockInterviewTab(viewModel: TalentViewModel) {
                             maxLines = 1
                         )
                         Text(
-                            text = "Feedback: ${log.feedback}",
+                            text = log.feedback,
                             color = LightGray.copy(alpha = 0.7f),
                             fontSize = 11.sp,
                             maxLines = 2
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AIMentorSmallBox(
+    viewModel: TalentViewModel,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit
+) {
+    val messages by viewModel.mentorMessages.collectAsStateWithLifecycle()
+    val isMentorLoading by viewModel.isMentorLoading.collectAsStateWithLifecycle()
+    var inputMsg by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
+    val focusManager = LocalFocusManager.current
+
+    // Automatically scroll to bottom when new messages arrive
+    LaunchedEffect(messages.size, isExpanded) {
+        if (messages.isNotEmpty() && isExpanded) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
+    val suggestions = listOf("Careem Tech", "Dubai Salaries", "1-Page Resume")
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Slate800),
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 12.dp, bottomEnd = 12.dp),
+        border = BorderStroke(1.dp, if (isExpanded) CosmicBlue else Slate700),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(if (isExpanded) 290.dp else 48.dp)
+            .testTag("ai_mentor_small_box")
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Header bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleExpand() }
+                    .background(if (isExpanded) CosmicBlue.copy(alpha = 0.15f) else Color.Transparent)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(NeonGreen)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "💬 AI Mentor Pocket Coach (Free & Offline)",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Toggle Mentor Expand",
+                    tint = LightGray,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            if (isExpanded) {
+                HorizontalDivider(color = Slate700)
+                
+                // Chat conversation area
+                Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+                    if (messages.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Ask me anything about Dubai CS Careers!",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Fully offline, free chat. Powered by local career intelligence.",
+                                color = LightGray.copy(alpha = 0.5f),
+                                fontSize = 10.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(messages) { msg ->
+                                val isUser = msg.sender == "user"
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(
+                                                RoundedCornerShape(
+                                                    topStart = 10.dp,
+                                                    topEnd = 10.dp,
+                                                    bottomStart = if (isUser) 10.dp else 0.dp,
+                                                    bottomEnd = if (isUser) 0.dp else 10.dp
+                                                )
+                                            )
+                                            .background(if (isUser) CosmicBlue else Slate900)
+                                            .padding(10.dp)
+                                            .widthIn(max = 240.dp)
+                                    ) {
+                                        Text(
+                                            text = msg.message,
+                                            color = Color.White,
+                                            fontSize = 11.sp,
+                                            lineHeight = 15.sp
+                                        )
+                                    }
+                                }
+                            }
+                            if (isMentorLoading) {
+                                item {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Start
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(Slate900)
+                                                .padding(10.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                CircularProgressIndicator(modifier = Modifier.size(12.dp), color = GlowingAmber, strokeWidth = 1.5.dp)
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("Mentor is thinking...", color = LightGray, fontSize = 10.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Quick Suggestions Row
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(suggestions) { tag ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Slate900)
+                                .border(1.dp, Slate700, RoundedCornerShape(6.dp))
+                                .clickable {
+                                    viewModel.sendMentorMessage(tag)
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = tag,
+                                color = GlowingAmber,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = Slate700)
+
+                // Input Box
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = inputMsg,
+                        onValueChange = { inputMsg = it },
+                        placeholder = { Text("Ask careers, resumes, salaries...", fontSize = 11.sp) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .testTag("mentor_message_input"),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = {
+                            if (inputMsg.trim().isNotEmpty()) {
+                                viewModel.sendMentorMessage(inputMsg)
+                                inputMsg = ""
+                                focusManager.clearFocus()
+                            }
+                        }),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = CosmicBlue,
+                            unfocusedBorderColor = Slate700,
+                            focusedContainerColor = Slate900,
+                            unfocusedContainerColor = Slate900
+                        ),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    IconButton(
+                        onClick = {
+                            if (inputMsg.trim().isNotEmpty()) {
+                                viewModel.sendMentorMessage(inputMsg)
+                                inputMsg = ""
+                                focusManager.clearFocus()
+                            }
+                        },
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(CosmicBlue)
+                            .size(34.dp)
+                            .testTag("mentor_send_button")
+                    ) {
+                        Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(14.dp))
                     }
                 }
             }
@@ -1218,4 +2529,1701 @@ object BoxBorderDefaults {
         width = 1.dp,
         color = CosmicBlue.copy(alpha = 0.4f)
     )
+}
+
+// ==========================================
+// 6. AI BADGES & CREATIVE STUDIO SCREEN
+// ==========================================
+@Composable
+fun AIImageScreen(viewModel: TalentViewModel) {
+    var prompt by remember { mutableStateOf("") }
+    var selectedSize by remember { mutableStateOf("1K") } // "1K", "2K", "4K"
+    val context = LocalContext.current
+
+    val imageBase64 by viewModel.generatedImageBase64.collectAsStateWithLifecycle()
+    val isGenerating by viewModel.isGeneratingImage.collectAsStateWithLifecycle()
+    val errorMsg by viewModel.imageGenerationError.collectAsStateWithLifecycle()
+
+    val suggestions = listOf(
+        "BITS Dubai coding wizard, futuristic golden avatar badge, 3D render",
+        "Data science certification badge, cyber neon green tech orb",
+        "Generative AI Scholar emblem, cosmic violet and blue nebula background",
+        "Cloud Architect graduation seal, sleek metallic chrome texture"
+    )
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Hero / Header
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Slate800),
+                border = BoxBorderDefaults.glowingBorder()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "AI BADGE & CREATIVE STUDIO",
+                        color = GlowingAmber,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Generate custom digital talent development credentials, portfolio graphics, and merit badges powered by gemini-3-pro-image-preview.",
+                        color = LightGray.copy(alpha = 0.8f),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+        }
+
+        // Prompt Input Section
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Slate800)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "1. Enter Creative Prompt",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = prompt,
+                        onValueChange = { prompt = it },
+                        placeholder = { Text("Describe the badge, e.g. Cyberpunk Java Master Badge...", fontSize = 13.sp, color = Slate600) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("prompt_input_field"),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = CosmicBlue,
+                            unfocusedBorderColor = Slate700,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedContainerColor = Slate900,
+                            unfocusedContainerColor = Slate900
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        maxLines = 4
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Suggestions:",
+                        color = LightGray.copy(alpha = 0.6f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    // Suggestions list
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        suggestions.forEach { sugg ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Slate900)
+                                    .clickable { prompt = sugg }
+                                    .border(1.dp, Slate700.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = sugg,
+                                    color = LightGray.copy(alpha = 0.8f),
+                                    fontSize = 10.sp,
+                                    maxLines = 1,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Size Affordance Section
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Slate800)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "2. Select Image Resolution",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val sizes = listOf("1K", "2K", "4K")
+                        sizes.forEach { size ->
+                            val isSelected = selectedSize == size
+                            val displayLabel = when(size) {
+                                "1K" -> "1K (Standard)"
+                                "2K" -> "2K (HD)"
+                                "4K" -> "4K (Pro)"
+                                else -> size
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSelected) CosmicBlue else Slate900)
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isSelected) GlowingAmber else Slate700,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable { selectedSize = size }
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = size,
+                                        color = Color.White,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = displayLabel.substringAfter(" "),
+                                        color = if (isSelected) Color.White.copy(alpha = 0.9f) else Slate600,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Generate Action Button
+        item {
+            Button(
+                onClick = { viewModel.generateBadgeImage(prompt, selectedSize) },
+                enabled = !isGenerating && prompt.trim().isNotEmpty(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("generate_badge_btn"),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = GlowingAmber,
+                    disabledContainerColor = Slate800
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                if (isGenerating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Slate900,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Rendering Studio pixels...",
+                        color = Slate900,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Palette",
+                        tint = Slate900
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Generate with Gemini Imagen 3",
+                        color = Slate900,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+
+        // Error message if any
+        if (errorMsg != null) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF7F1D1D))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Warning",
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = errorMsg ?: "",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+
+        // Output Result Section
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 280.dp),
+                colors = CardDefaults.cardColors(containerColor = Slate800),
+                border = if (imageBase64 != null) BoxBorderDefaults.glowingBorder() else null
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    if (isGenerating) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                LinearProgressIndicator(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.7f)
+                                        .height(4.dp),
+                                    color = GlowingAmber,
+                                    trackColor = Slate900
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Synthesizing visual intelligence...",
+                                    color = LightGray.copy(alpha = 0.6f),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    } else if (imageBase64 != null) {
+                        val bitmap = remember(imageBase64) {
+                            if (imageBase64 != null) {
+                                try {
+                                    val decodedBytes = android.util.Base64.decode(imageBase64, android.util.Base64.DEFAULT)
+                                    android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            } else null
+                        }
+
+                        if (bitmap != null) {
+                            androidx.compose.foundation.Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Generated Merit Badge",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .border(1.dp, Slate700, RoundedCornerShape(12.dp))
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        saveBitmapToStorage(context, bitmap, "BITS_Dubai_Badge_${System.currentTimeMillis()}")
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = CosmicBlue),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.Share, contentDescription = "Save")
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Save to Gallery", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                                OutlinedButton(
+                                    onClick = { viewModel.clearGeneratedImage() },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = LightGray),
+                                    border = BorderStroke(1.dp, Slate700),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Clear")
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Reset Studio", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        } else {
+                            Text(
+                                text = "Failed to parse image bytes.",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                                .border(
+                                    border = BorderStroke(1.dp, Slate700),
+                                    shape = RoundedCornerShape(8.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Studio Art",
+                                    tint = Slate600,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Your Generated Masterpiece Will Appear Here",
+                                    color = LightGray.copy(alpha = 0.5f),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Prompts can describe career goals, talent scores, tech mastery, or unique campus designs.",
+                                    color = Slate600,
+                                    fontSize = 10.sp,
+                                    textAlign = TextAlign.Center,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun saveBitmapToStorage(context: android.content.Context, bitmap: android.graphics.Bitmap, filename: String) {
+    val contentValues = android.content.ContentValues().apply {
+        put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, "$filename.jpg")
+        put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES)
+        }
+    }
+    val resolver = context.contentResolver
+    val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+    if (uri != null) {
+        try {
+            resolver.openOutputStream(uri).use { stream ->
+                if (stream != null) {
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, stream)
+                    android.widget.Toast.makeText(context, "Saved achievement badge to Pictures!", android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(context, "Failed to save: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+}
+
+// ==========================================
+// 6. EVENTS & PLACEMENT FEEDS SCREEN (NEW)
+// ==========================================
+@Composable
+fun EventsScreen(viewModel: TalentViewModel) {
+    val context = LocalContext.current
+    val registeredEventIds by viewModel.registeredEventIds.collectAsStateWithLifecycle()
+    val eventsList by viewModel.liveEvents.collectAsStateWithLifecycle()
+    val isEventsLoading by viewModel.isEventsLoading.collectAsStateWithLifecycle()
+
+    var selectedCategoryFilter by remember { mutableStateOf("All") }
+    val filteredEvents = remember(eventsList, selectedCategoryFilter) {
+        if (selectedCategoryFilter == "All") {
+            eventsList
+        } else {
+            eventsList.filter { event ->
+                when (selectedCategoryFilter) {
+                    "AI Events" -> event.category.contains("AI", ignoreCase = true)
+                    "Placement Events" -> event.category.contains("Placement", ignoreCase = true)
+                    "GovTech & UAE" -> event.category.contains("Gov", ignoreCase = true) || event.category.contains("UAE", ignoreCase = true) || event.category.contains("State", ignoreCase = true)
+                    else -> true
+                }
+            }
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Feed Header
+        item {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "UAE & DUBAI LIVE FEEDS",
+                        color = GlowingAmber,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.5.sp
+                    )
+                    IconButton(onClick = { 
+                        viewModel.fetchLiveFeeds()
+                        android.widget.Toast.makeText(context, "Feeds Refreshed!", android.widget.Toast.LENGTH_SHORT).show()
+                    }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh feeds", tint = GlowingAmber)
+                    }
+                }
+                Text(
+                    text = "Real-time AI seminars, government initiatives, and UAE placement schedules.",
+                    color = LightGray.copy(alpha = 0.6f),
+                    fontSize = 12.sp
+                )
+            }
+        }
+
+        // Category Filters Row
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val filters = listOf("All", "AI Events", "Placement Events", "GovTech & UAE")
+                filters.forEach { filter ->
+                    val isSelected = selectedCategoryFilter == filter
+                    val chipBgColor = if (isSelected) GlowingAmber else Slate800
+                    val chipTextColor = if (isSelected) Slate900 else Color.White
+                    val chipBorderColor = if (isSelected) GlowingAmber else Slate700
+                    
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(chipBgColor)
+                            .border(BorderStroke(1.dp, chipBorderColor), RoundedCornerShape(20.dp))
+                            .clickable {
+                                selectedCategoryFilter = filter
+                            }
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                            .testTag("filter_chip_$filter")
+                    ) {
+                        Text(
+                            text = filter,
+                            color = chipTextColor,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
+        // Live Event Feed Label
+        item {
+            Text(
+                text = "ACTIVE EVENTS & PLACEMENTS (LIVE FEEDS)",
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.sp
+            )
+        }
+
+        if (isEventsLoading) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = GlowingAmber)
+                }
+            }
+        } else if (filteredEvents.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No events match this filter.",
+                        color = LightGray.copy(alpha = 0.5f),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        } else {
+            // Events List View
+            items(filteredEvents) { event ->
+                val isRegistered = registeredEventIds.contains(event.id)
+                val eventGlow = when {
+                    event.category.contains("AI", ignoreCase = true) -> NeonCyan
+                    event.category.contains("Gov", ignoreCase = true) || event.category.contains("UAE", ignoreCase = true) -> NeonCyan
+                    else -> GlowingAmber
+                }
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Slate800),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.2.dp, if (isRegistered) NeonGreen.copy(alpha = 0.8f) else eventGlow.copy(alpha = 0.3f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("event_card_${event.id}")
+                ) {
+                    Column {
+                        // Header / Image thumbnail area with category tag overlay
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(110.dp)
+                        ) {
+                            AsyncImage(
+                                model = event.bannerUrl,
+                                contentDescription = event.title,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(Color.Transparent, Slate800)
+                                        )
+                                    )
+                            )
+                            
+                            // Category Chip
+                            val categoryBg = when {
+                                event.category.contains("AI", ignoreCase = true) -> CosmicBlue
+                                event.category.contains("Gov", ignoreCase = true) || event.category.contains("UAE", ignoreCase = true) -> NeonCyan
+                                else -> GlowingAmber
+                            }
+                            val categoryTextColor = when {
+                                event.category.contains("AI", ignoreCase = true) -> Color.White
+                                event.category.contains("Gov", ignoreCase = true) || event.category.contains("UAE", ignoreCase = true) -> Slate900
+                                else -> Slate900
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(12.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(categoryBg)
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = event.category.uppercase(),
+                                    color = categoryTextColor,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                        }
+
+                        // Event Details Column
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = event.title,
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            Text(
+                                text = "📅  ${event.date}",
+                                color = GlowingAmber,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "📍  ${event.location}",
+                                color = LightGray.copy(alpha = 0.7f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = event.description,
+                                color = LightGray.copy(alpha = 0.9f),
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Actions row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Live applicants feed simulator
+                                Column {
+                                    val applicantsCount = when(event.id) {
+                                        "evt_1", "evt_live_1" -> 84
+                                        "evt_2", "evt_live_2" -> 142
+                                        "evt_3", "evt_live_3" -> 210
+                                        else -> 65
+                                    }
+                                    Text(
+                                        text = "🔥  $applicantsCount Candidates Synced",
+                                        color = NeonPink,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                // Dynamic Action Buttons
+                                if (isRegistered) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "Cancel",
+                                            color = Color.Red.copy(alpha = 0.6f),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier
+                                                .clickable {
+                                                    viewModel.unregisterFromEvent(event.id)
+                                                    android.widget.Toast.makeText(context, "Registration cancelled successfully.", android.widget.Toast.LENGTH_SHORT).show()
+                                                }
+                                                .padding(end = 12.dp)
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(NeonGreen.copy(alpha = 0.15f))
+                                                .border(1.dp, NeonGreen, shape = RoundedCornerShape(6.dp))
+                                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Registered",
+                                                    tint = NeonGreen,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = "Registered ✓",
+                                                    color = NeonGreen,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Black
+                                                )
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Button(
+                                        onClick = {
+                                            viewModel.registerForEvent(event.id)
+                                            android.widget.Toast.makeText(context, "Registered successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = CosmicBlue),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text(
+                                            text = "Register Now",
+                                            color = Color.TrueWhite,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ==========================================
+// 7. LINKEDIN & AI RESUME BUILDER SCREEN (NEW)
+// ==========================================
+@Composable
+fun ResumeScreen(viewModel: TalentViewModel) {
+    val context = LocalContext.current
+    val profile by viewModel.userProfile.collectAsStateWithLifecycle()
+    val isLinkedInConnected by viewModel.isLinkedInConnected.collectAsStateWithLifecycle()
+    val linkedInProfileUrl by viewModel.linkedInProfileUrl.collectAsStateWithLifecycle()
+    
+    val isImprovingResume by viewModel.isImprovingResume.collectAsStateWithLifecycle()
+    val aiResumeFeedback by viewModel.aiResumeFeedback.collectAsStateWithLifecycle()
+    val proposedResumeText by viewModel.proposedResumeText.collectAsStateWithLifecycle()
+
+    val isUploadingPdf by viewModel.isUploadingPdf.collectAsStateWithLifecycle()
+    val pdfUploadProgress by viewModel.pdfUploadProgress.collectAsStateWithLifecycle()
+    val pdfUploadStatus by viewModel.pdfUploadStatus.collectAsStateWithLifecycle()
+    val pdfFileSizeText by viewModel.pdfFileSizeText.collectAsStateWithLifecycle()
+
+    var linkedinInputUrl by remember { mutableStateOf("") }
+    var resumeText by remember { mutableStateOf("") }
+    var resumeFileName by remember { mutableStateOf("No resume uploaded yet") }
+    
+    var aiPrompt by remember { mutableStateOf("") }
+
+    // Sync state fields with DB values on load
+    LaunchedEffect(profile) {
+        profile?.let {
+            if (linkedinInputUrl.isEmpty()) {
+                linkedinInputUrl = it.linkedInUrl
+            }
+            resumeText = it.resumeText
+            resumeFileName = it.resumeFileName
+        }
+    }
+
+    // Modern file picker to let them select a text/pdf resume file to simulate file upload
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        if (uri != null) {
+            try {
+                val contentResolver = context.contentResolver
+                // Get filename
+                var name = "uploaded_resume.txt"
+                contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex != -1 && cursor.moveToFirst()) {
+                        name = cursor.getString(nameIndex)
+                    }
+                }
+                
+                // Read text if it's a text file, else create high-quality dummy text for non-text formats
+                val textContent = if (name.endsWith(".txt")) {
+                    contentResolver.openInputStream(uri)?.use { stream ->
+                        stream.bufferedReader().readText()
+                    } ?: ""
+                } else {
+                    // Generate realistic resume from UserProfile track
+                    val track = profile?.track ?: "Software Engineer"
+                    """
+                    Nitin Jain
+                    Dubai, UAE
+                    nitinjain2099@gmail.com
+                    
+                    [UPLOADED RESUME FROM: $name]
+                    
+                    EXPERIENCE
+                    - Senior Software Developer
+                      Extensive work in Android development, Coroutines, and Room databases in Dubai.
+                    - Tech Lead / Consultant
+                      Leading agile sprints and building optimized mobile architectures.
+                      
+                    PROJECTS
+                    - TalentDev Engine
+                      Jetpack Compose placement and career coaching platform utilizing Google Gemini LLM frameworks.
+                      
+                    EDUCATION
+                    - BITS Pilani Dubai Campus
+                      Track: $track | CGPA: ${profile?.cgpa ?: 9.2}
+                    """.trimIndent()
+                }
+
+                if (textContent.isNotBlank()) {
+                    viewModel.uploadResumeFile(name, textContent)
+                    android.widget.Toast.makeText(context, "Resume file uploaded successfully!", android.widget.Toast.LENGTH_LONG).show()
+                } else {
+                    android.widget.Toast.makeText(context, "Uploaded file was empty.", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                android.widget.Toast.makeText(context, "Failed to read selected file. Simulated successful upload.", android.widget.Toast.LENGTH_SHORT).show()
+                // Graceful fallback simulation
+                viewModel.uploadResumeFile(
+                    "nitinjain_corporate_resume.pdf", 
+                    "Nitin Jain\nnitinjain2099@gmail.com\nDubai, UAE\n\nOBJECTIVE\nAmbitious BITS Pilani Dubai student seeking placement roles.\n\nEXPERIENCE\n- Tech Intern, Dubai Silicon Oasis\n- Developer, Jetpack Compose App Project\n\nEDUCATION\n- BITS Pilani Dubai Campus\n- CGPA: ${profile?.cgpa ?: 9.2}"
+                )
+            }
+        }
+    }
+
+    // Specialized file picker specifically for PDF resume sync
+    val pdfPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        if (uri != null) {
+            viewModel.uploadPdfResume(context, uri)
+        } else {
+            android.widget.Toast.makeText(context, "No PDF selected.", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Tab Header
+        item {
+            Column {
+                Text(
+                    text = "AI RESUME BUILDER",
+                    color = GlowingAmber,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.5.sp
+                )
+                Text(
+                    text = "Upload your resume and refine your credentials in real-time with your AI Agent.",
+                    color = LightGray.copy(alpha = 0.6f),
+                    fontSize = 12.sp
+                )
+            }
+        }
+
+        // Section 2: Resume Upload Area - Specialized Firebase PDF Hub
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Slate800),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Slate700),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Firebase PDF Resume Hub",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    if (profile?.firebaseSynced == true) NeonGreen.copy(alpha = 0.15f) else GlowingAmber.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = if (profile?.firebaseSynced == true) "FIREBASE LIVE" else "SANDBOX CACHE",
+                                color = if (profile?.firebaseSynced == true) NeonGreen else GlowingAmber,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Store, index, and synchronize your official PDF resume directly with your Firebase recruiter profile for 1-click corporate applications in Dubai.",
+                        color = LightGray.copy(alpha = 0.6f),
+                        fontSize = 11.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (isUploadingPdf) {
+                        // PDF Sync Upload Progress state
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Slate900.copy(alpha = 0.6f), shape = RoundedCornerShape(12.dp))
+                                .border(BorderStroke(1.dp, Slate700), shape = RoundedCornerShape(12.dp))
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Uploading PDF Resume...",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${(pdfUploadProgress * 100).toInt()}%",
+                                    color = GlowingAmber,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            // Glowing linear progress indicator
+                            LinearProgressIndicator(
+                                progress = { pdfUploadProgress },
+                                color = GlowingAmber,
+                                trackColor = Slate700,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .background(Color.Transparent, shape = RoundedCornerShape(3.dp))
+                            )
+
+                            Text(
+                                text = pdfUploadStatus,
+                                color = LightGray.copy(alpha = 0.7f),
+                                fontSize = 11.sp
+                            )
+                        }
+                    } else if (profile?.firebaseSynced == true) {
+                        // Successfully Synced State
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Slate900.copy(alpha = 0.6f), shape = RoundedCornerShape(12.dp))
+                                .border(BorderStroke(1.dp, NeonGreen.copy(alpha = 0.4f)), shape = RoundedCornerShape(12.dp))
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Active PDF Sync",
+                                        tint = NeonGreen,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = profile?.resumeFileName ?: "uploaded_resume.pdf",
+                                            color = Color.White,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            text = "Synced: ${profile?.firebasePdfUrl ?: "gs://bits-dubai-talentdev.appspot.com"}",
+                                            color = LightGray.copy(alpha = 0.5f),
+                                            fontSize = 10.sp,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                                
+                                Text(
+                                    text = "Disconnect",
+                                    color = Color.Red.copy(alpha = 0.8f),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier
+                                        .clickable {
+                                            viewModel.clearFirebaseResume()
+                                            android.widget.Toast.makeText(context, "Firebase resume sync disabled.", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                        .testTag("disconnect_firebase_pdf_btn")
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        pdfPickerLauncher.launch("application/pdf")
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = CosmicBlue),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp)
+                                        .testTag("upload_new_pdf_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowForward,
+                                        contentDescription = null,
+                                        tint = Color.TrueWhite,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Sync New PDF",
+                                        fontSize = 11.sp,
+                                        color = Color.TrueWhite,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // Empty / Not Synced Dropzone State
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Slate900.copy(alpha = 0.4f), shape = RoundedCornerShape(12.dp))
+                                .border(BorderStroke(1.dp, Slate700), shape = RoundedCornerShape(12.dp))
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "PDF Upload Pending",
+                                tint = GlowingAmber,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "No PDF Resume Attached to Firebase",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "MIME format locked to PDF. Maximum permitted file size: 5 MB.",
+                                    color = LightGray.copy(alpha = 0.5f),
+                                    fontSize = 11.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    pdfPickerLauncher.launch("application/pdf")
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = GlowingAmber),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(44.dp)
+                                    .testTag("upload_first_pdf_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowForward,
+                                    contentDescription = null,
+                                    tint = Slate900,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Select & Sync PDF Resume",
+                                    fontSize = 12.sp,
+                                    color = Slate900,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Configuration Guidance Card for Real Firebase integration
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Slate900.copy(alpha = 0.3f), shape = RoundedCornerShape(8.dp))
+                            .border(BorderStroke(1.dp, Slate700.copy(alpha = 0.5f)), shape = RoundedCornerShape(8.dp))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Configuration guidance icon",
+                            tint = NeonCyan,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Connected to BITS Dubai Firebase Sandbox storage bucket. To sync with your own team's production Firebase project, copy your 'google-services.json' file into the '/app' folder.",
+                            color = LightGray.copy(alpha = 0.5f),
+                            fontSize = 10.sp,
+                            lineHeight = 14.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Section 3: Live Resume Editor & AI Assistant
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Slate800),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Slate700),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Text(
+                        text = "Interactive Resume Canvas",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Edit your resume content in real-time, or request the AI Agent to polish sections for you.",
+                        color = LightGray.copy(alpha = 0.6f),
+                        fontSize = 11.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Text Field for Direct Editing
+                    OutlinedTextField(
+                        value = resumeText,
+                        onValueChange = {
+                            resumeText = it
+                            viewModel.updateResumeText(it)
+                        },
+                        label = { Text("Resume Content Editor") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = CosmicBlue,
+                            unfocusedBorderColor = Slate700,
+                            focusedLabelColor = CosmicBlue
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(260.dp)
+                            .testTag("resume_editor_input"),
+                        maxLines = 18
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = Slate700.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // AI Resume Agent Helper block
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(HighDesignTokens.SparkleGradient),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("AI", color = Color.TrueWhite, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "AI Resume Assistant Agent",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = aiPrompt,
+                        onValueChange = { aiPrompt = it },
+                        placeholder = { Text("Ask AI Agent: e.g., 'Rewrite my experience professionally' or 'Optimize for AI/ML roles'") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = GlowingAmber,
+                            unfocusedBorderColor = Slate700,
+                            focusedPlaceholderColor = LightGray.copy(alpha = 0.4f),
+                            unfocusedPlaceholderColor = LightGray.copy(alpha = 0.4f)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth().testTag("ai_resume_prompt_input"),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Button(
+                        onClick = {
+                            if (aiPrompt.isNotBlank()) {
+                                viewModel.improveResumeWithAI(aiPrompt, resumeText)
+                            } else {
+                                android.widget.Toast.makeText(context, "Please enter a prompt instruction first.", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = CosmicBlue),
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = !isImprovingResume,
+                        modifier = Modifier.fillMaxWidth().testTag("ask_ai_resume_btn")
+                    ) {
+                        if (isImprovingResume) {
+                            CircularProgressIndicator(color = Color.TrueWhite, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("Agent Optimizing...")
+                        } else {
+                            Text("Consult AI Resume Agent", color = Color.TrueWhite, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // Display AI Output and Proposal
+                    if (aiResumeFeedback.isNotBlank() || proposedResumeText.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Slate900.copy(alpha = 0.7f), shape = RoundedCornerShape(8.dp))
+                                .border(1.dp, GlowingAmber.copy(alpha = 0.4f), shape = RoundedCornerShape(8.dp))
+                                .padding(12.dp)
+                        ) {
+                            Column {
+                                Text(
+                                    text = "AI AGENT FEEDBACK & RECOMMENDATION",
+                                    color = GlowingAmber,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = aiResumeFeedback,
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp
+                                )
+
+                                if (proposedResumeText.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = "PROPOSED OPTIMIZED TEXT",
+                                        color = NeonCyan,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 1.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(Slate800.copy(alpha = 0.5f), shape = RoundedCornerShape(6.dp))
+                                            .padding(8.dp)
+                                    ) {
+                                        Text(
+                                            text = proposedResumeText,
+                                            color = LightGray,
+                                            fontSize = 11.sp,
+                                            lineHeight = 15.sp,
+                                            maxLines = 8,
+                                            fontStyle = FontStyle.Italic
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = {
+                                                viewModel.clearProposedResume()
+                                                aiPrompt = ""
+                                            },
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red.copy(alpha = 0.8f)),
+                                            shape = RoundedCornerShape(6.dp),
+                                            border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.4f))
+                                        ) {
+                                            Text("Discard", fontSize = 11.sp)
+                                        }
+
+                                        Button(
+                                            onClick = {
+                                                viewModel.applyProposedResume()
+                                                aiPrompt = ""
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = NeonGreen),
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Text("Apply AI Recommendation", color = Slate900, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun QuizDialog(
+    quiz: com.example.data.Quiz,
+    answers: Map<Int, Int>,
+    submitted: Boolean,
+    onSelectOption: (Int, Int) -> Unit,
+    onSubmit: () -> Unit,
+    onClose: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onClose,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            color = Slate950,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(1.dp, NeonCyan.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Quiz Logo",
+                            tint = GlowingAmber,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "PRACTICE QUIZ",
+                                color = GlowingAmber,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = quiz.courseTitle,
+                                color = androidx.compose.ui.graphics.Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.widthIn(max = 240.dp)
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = onClose,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close Dialog",
+                            tint = LightGray
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Slate700.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Scrollable Questions
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    itemsIndexed(quiz.questions) { qIdx, question ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Slate900),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, Slate800, RoundedCornerShape(12.dp)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "QUESTION ${qIdx + 1} OF 5",
+                                        color = NeonCyan,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 0.8.sp
+                                    )
+                                    if (submitted) {
+                                        val isCorrect = answers[qIdx] == question.correctAnswerIndex
+                                        Text(
+                                            text = if (isCorrect) "CORRECT ✓" else "INCORRECT ✗",
+                                            color = if (isCorrect) NeonGreen else androidx.compose.ui.graphics.Color.Red,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Black,
+                                            letterSpacing = 0.8.sp
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Text(
+                                    text = question.questionText,
+                                    color = androidx.compose.ui.graphics.Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    lineHeight = 18.sp
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // Options
+                                question.options.forEachIndexed { oIdx, option ->
+                                    val isSelected = answers[qIdx] == oIdx
+                                    val isCorrectOption = question.correctAnswerIndex == oIdx
+                                    val optionLetter = when(oIdx) {
+                                        0 -> "A"
+                                        1 -> "B"
+                                        2 -> "C"
+                                        else -> "D"
+                                    }
+
+                                    val cardBg = when {
+                                        submitted && isCorrectOption -> NeonGreen.copy(alpha = 0.12f)
+                                        submitted && isSelected && !isCorrectOption -> androidx.compose.ui.graphics.Color.Red.copy(alpha = 0.12f)
+                                        !submitted && isSelected -> CosmicBlue.copy(alpha = 0.25f)
+                                        else -> Slate800
+                                    }
+
+                                    val cardBorderColor = when {
+                                        submitted && isCorrectOption -> NeonGreen
+                                        submitted && isSelected && !isCorrectOption -> androidx.compose.ui.graphics.Color.Red
+                                        !submitted && isSelected -> CosmicBlue
+                                        else -> Slate700.copy(alpha = 0.5f)
+                                    }
+
+                                    val textWeight = if (isSelected || (submitted && isCorrectOption)) FontWeight.Bold else FontWeight.Normal
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(cardBg)
+                                            .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                                            .clickable(enabled = !submitted) {
+                                                onSelectOption(qIdx, oIdx)
+                                            }
+                                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(24.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        when {
+                                                            submitted && isCorrectOption -> NeonGreen
+                                                            submitted && isSelected && !isCorrectOption -> androidx.compose.ui.graphics.Color.Red
+                                                            !submitted && isSelected -> CosmicBlue
+                                                            else -> Slate700
+                                                        }
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = optionLetter,
+                                                    color = if (isSelected || (submitted && isCorrectOption)) Slate950 else androidx.compose.ui.graphics.Color.White,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+
+                                            Spacer(modifier = Modifier.width(10.dp))
+
+                                            Text(
+                                                text = option,
+                                                color = androidx.compose.ui.graphics.Color.White,
+                                                fontSize = 12.sp,
+                                                fontWeight = textWeight,
+                                                lineHeight = 16.sp,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Explanation
+                                if (submitted) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Slate950)
+                                            .padding(10.dp)
+                                    ) {
+                                        Column {
+                                            Text(
+                                                text = "EXPLANATION",
+                                                color = GlowingAmber,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Black,
+                                                letterSpacing = 0.5.sp
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = question.explanation,
+                                                color = LightGray.copy(alpha = 0.9f),
+                                                fontSize = 11.sp,
+                                                lineHeight = 15.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Score Card & Feedback at bottom of questions
+                    if (submitted) {
+                        item {
+                            val score = quiz.questions.filterIndexed { idx, q -> answers[idx] == q.correctAnswerIndex }.size
+                            val feedbackMsg = when (score) {
+                                5 -> "🥇 Absolute Perfection! You are completely corporate & placement ready!"
+                                4 -> "🌟 Exceptional job! Excellent core command in this curriculum domain."
+                                3 -> "👍 Solid performance! A bit of review will unlock peak confidence."
+                                else -> "📚 Good try! Re-audit the course materials and try practicing again."
+                            }
+
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = Slate900),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, GlowingAmber.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
+                                    .padding(vertical = 8.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "QUIZ ASSESSMENT RESULT",
+                                        color = GlowingAmber,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 1.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "$score / 5 Correct",
+                                        color = androidx.compose.ui.graphics.Color.White,
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = feedbackMsg,
+                                        color = LightGray,
+                                        fontSize = 12.sp,
+                                        textAlign = TextAlign.Center,
+                                        fontStyle = FontStyle.Italic,
+                                        lineHeight = 16.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Slate700.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Bottom Buttons
+                if (!submitted) {
+                    val allAnswered = answers.size == 5
+                    Button(
+                        onClick = onSubmit,
+                        enabled = allAnswered,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = GlowingAmber,
+                            disabledContainerColor = Slate700,
+                            contentColor = Slate950,
+                            disabledContentColor = LightGray.copy(alpha = 0.5f)
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                    ) {
+                        Text(
+                            text = if (allAnswered) "Submit Answers" else "Answer All Questions (${answers.size}/5)",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else {
+                    Button(
+                        onClick = onClose,
+                        colors = ButtonDefaults.buttonColors(containerColor = CosmicBlue),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                    ) {
+                        Text(
+                            text = "Finish & Return to Study Hub",
+                            color = androidx.compose.ui.graphics.Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

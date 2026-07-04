@@ -2,6 +2,7 @@ package com.example.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 @Entity(tableName = "user_profile")
 data class UserProfile(
@@ -12,7 +13,14 @@ data class UserProfile(
     val coreSkills: String, // Comma-separated
     val targetCompanies: String, // Comma-separated
     val talentScore: Int = 50,
-    val assessmentFeedback: String = ""
+    val assessmentFeedback: String = "",
+    val resumeText: String = "Nitin Jain\nDubai, UAE\nnitinjain2099@gmail.com\n\nOBJECTIVE\nAmbitious BITS Pilani Dubai engineering student aiming for top corporate networks and placement excellence.\n\nEDUCATION\n- BITS Pilani Dubai Campus\n- CGPA: 9.2\n- Track: Software Engineer\n\nSKILLS\n- Kotlin, Java, Python, Android SDK, Jetpack Compose, Git\n\nEXPERIENCE\n- Tech Project Intern\n  Developed offline-first Jetpack Compose applications featuring Room and Clean Architecture.",
+    val resumeFileName: String = "nitinjain_resume.txt",
+    val linkedInUrl: String = "https://linkedin.com/in/nitinjain",
+    val googleEmail: String = "",
+    val googleAvatarUrl: String = "",
+    val firebasePdfUrl: String? = null,
+    val firebaseSynced: Boolean = false
 )
 
 @Entity(tableName = "learning_roadmap")
@@ -42,4 +50,28 @@ data class MentorMessage(
     val sender: String, // "user" or "mentor"
     val message: String,
     val timestamp: Long = System.currentTimeMillis()
+)
+
+data class DubaiEvent(
+    val id: String,
+    val title: String,
+    val description: String,
+    val date: String,
+    val location: String,
+    val category: String, // "AI Event" or "Placement Event"
+    val bannerUrl: String
+)
+
+@Serializable
+data class QuizQuestion(
+    val questionText: String,
+    val options: List<String>,
+    val correctAnswerIndex: Int,
+    val explanation: String
+)
+
+@Serializable
+data class Quiz(
+    val courseTitle: String,
+    val questions: List<QuizQuestion>
 )
