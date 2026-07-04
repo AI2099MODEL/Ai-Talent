@@ -1,0 +1,6 @@
+{
+  "name": "BITS AI Talent Dev",
+  "description": "An AI-led talent development and placement readiness platform for BITS Dubai 2025 Batch.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
