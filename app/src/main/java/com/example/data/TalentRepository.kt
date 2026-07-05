@@ -335,9 +335,9 @@ class TalentRepository(private val db: AppDatabase) {
         val finalScore = score.coerceIn(1, 10)
         
         val summaryFeedback = when {
-            finalScore >= 8 -> "This is an outstanding response. Dubai multinationals like Careem or Emirates Group value candidates who express tech choices with this level of maturity. Perfect terminology usage and deep logical explanation."
-            finalScore >= 6 -> "A solid response that meets the basic standards of an entry-level interview. To stand out for competitive Dubai CS placements, try adding specific real-world examples, database schema outlines, or computational complexity calculations."
-            else -> "This answer needs more technical refinement. Dubai interviewers expect candidates to detail step-by-step algorithms, database schemas, and precise design choices. Review this topic in the Study tab to build a stronger foundation."
+            finalScore >= 8 -> "This is an outstanding response. Top-tier technology organizations value candidates who express tech choices with this level of maturity. Perfect terminology usage and deep logical explanation."
+            finalScore >= 6 -> "A solid response that meets the basic standards of an entry-level interview. To stand out for competitive tech placements, try adding specific real-world examples, database schema outlines, or computational complexity calculations."
+            else -> "This answer needs more technical refinement. Technical interviewers expect candidates to detail step-by-step algorithms, database schemas, and precise design choices. Review this topic in the Study tab to build a stronger foundation."
         }
         
         val fullFeedback = "${feedbackList.joinToString(" ")}\n\n**Recruiter Verdict:** $summaryFeedback"
@@ -845,5 +845,312 @@ class TalentRepository(private val db: AppDatabase) {
 
         return Quiz(courseTitle = courseTitle, questions = questions)
     }
+
+    suspend fun getPrepQuestions(company: String, field: String, difficulty: String): List<PrepQuestion> = withContext(Dispatchers.IO) {
+        val count = db.prepQuestionDao().getCount()
+        if (count < 300) {
+            db.prepQuestionDao().clearQuestions()
+            val questionsList = generateAllQuestions()
+            db.prepQuestionDao().insertQuestions(questionsList)
+        }
+        db.prepQuestionDao().getQuestions(company, field, difficulty)
+    }
+
+    suspend fun getGenericPrepQuestions(field: String, difficulty: String): List<PrepQuestion> = withContext(Dispatchers.IO) {
+        val count = db.prepQuestionDao().getCount()
+        if (count < 300) {
+            db.prepQuestionDao().clearQuestions()
+            val questionsList = generateAllQuestions()
+            db.prepQuestionDao().insertQuestions(questionsList)
+        }
+        val rawQuestions = db.prepQuestionDao().getQuestionsByFieldAndDifficulty(field, difficulty)
+        rawQuestions.map { q ->
+            q.copy(questionText = cleanQuestionText(q.questionText, q.company))
+        }
+    }
+
+    suspend fun populatePrepQuestions(questions: List<PrepQuestion>) = withContext(Dispatchers.IO) {
+        db.prepQuestionDao().insertQuestions(questions)
+    }
+
+    suspend fun getPrepQuestionsCount(): Int = withContext(Dispatchers.IO) {
+        db.prepQuestionDao().getCount()
+    }
+}
+
+data class CompanyScenarios(
+    val service: String,
+    val dsa: String,
+    val ai: String,
+    val devops: String
+)
+
+fun getScenariosForCompany(company: String): CompanyScenarios {
+    return when (company) {
+        "Emirates Group" -> CompanyScenarios(
+            service = "flight reservation and seat booking microservices",
+            dsa = "airport connections map where you need to find the shortest flight path with minimum layovers",
+            ai = "passenger booking cancellations and dynamically predicting seat upgrade likelihood",
+            devops = "global airline ticketing backend requiring 99.999% uptime across multiple AWS regions"
+        )
+        "Careem" -> CompanyScenarios(
+            service = "real-time ride-hailing driver dispatch and GPS tracking systems",
+            dsa = "grid map of drivers where you must find the closest active driver to a rider in a 2D space",
+            ai = "surge pricing multipliers dynamically adjusting based on historic demand and real-time requests",
+            devops = "high-frequency real-time web-socket gateways handling millions of active drivers"
+        )
+        "Talabat" -> CompanyScenarios(
+            service = "food and quick-commerce delivery status tracking",
+            dsa = "restaurant menu autocomplete search bar handling millions of concurrent keystroke requests",
+            ai = "restaurant recommendation systems using collaborative filtering and purchase histories",
+            devops = "order dispatch microservices executing thousands of database writes per second"
+        )
+        "Property Finder" -> CompanyScenarios(
+            service = "property listing faceted search and multi-dimensional filtering",
+            dsa = "real-estate listings where you must query the top K cheapest properties in Dubai Marina",
+            ai = "predictive model estimating villa market valuation in Dubai based on square footage and historic sales",
+            devops = "high-performance image-delivery CDN pipelines loading millions of high-resolution property photos"
+        )
+        "e& (Etisalat)" -> CompanyScenarios(
+            service = "telecom microservices handling millions of active subscribers",
+            dsa = "routing telephone network signals represented as a spanning tree with minimum latency",
+            ai = "predicting subscriber churn rates and identifying fraudulent calling patterns using machine learning",
+            devops = "highly available containerized core communication networks with zero-trust API boundaries"
+        )
+        "noon.com" -> CompanyScenarios(
+            service = "e-commerce cart persistence and high-volume flash sale checkouts",
+            dsa = "product list search indexing where we merge and sort millions of active SKUs dynamically",
+            ai = "detecting credit card fraud on checkouts using real-time transactions classification models",
+            devops = "high-volume GCC e-commerce marketplace undergoing extreme traffic spikes on White Friday"
+        )
+        "Binance Dubai" -> CompanyScenarios(
+            service = "high-frequency digital asset order books and trading engine logs",
+            dsa = "low-latency order matching queue handling thousands of order executions per millisecond",
+            ai = "predictive market price trends and detecting unusual algorithmic trading loops on exchange books",
+            devops = "highly secure, low-latency, audited ledger systems adhering to Dubai VARA regulations"
+        )
+        "Amazon UAE" -> CompanyScenarios(
+            service = "regional warehouse inventory allocation and checkout flows",
+            dsa = "delivery route planning problem mapping delivery vans to Dubai addresses using TSP heuristics",
+            ai = "personalized homepage recommendation system predicting product interest from browse histories",
+            devops = "multi-tenant scalable AWS architecture serving millions of active regional shoppers"
+        )
+        "G42" -> CompanyScenarios(
+            service = "generative AI training jobs and cloud supercomputing node allocation",
+            dsa = "nearest-neighbor vector search in a high-dimensional embedding database (Milvus/Qdrant)",
+            ai = "Jais Arabic Large Language Model pre-training, parameter tuning, and efficient model inference",
+            devops = "supercomputing cluster orchestration running heavy GPU workloads under Kubernetes"
+        )
+        "Astra Tech" -> CompanyScenarios(
+            service = "Botim super-app high-concurrency messaging and VoIP chat servers",
+            dsa = "chat contact list search autocomplete using a prefix Trie structure across millions of users",
+            ai = "predicting user wallet transaction trends and optimizing advertising click-through-rates",
+            devops = "ultra-low latency global VoIP relay servers with persistent WebSocket connection pools"
+        )
+        "Dubizzle" -> CompanyScenarios(
+            service = "user-to-user classifieds listings and live chat messaging database",
+            dsa = "duplicate listing detection model matching photos and listing titles in linear time",
+            ai = "identifying classifieds spam, fake property listings, and automated bot accounts using classification models",
+            devops = "rapid image processing and thumbnail resizing pipeline storing millions of user-uploaded images"
+        )
+        "Mashreq Bank" -> CompanyScenarios(
+            service = "Mashreq Neo core banking transactional ledgers and secure payment gateways",
+            dsa = "transaction ledger audit trail verifying integrity via a cryptographic Merkle Tree",
+            ai = "credit card risk assessment scoring and predicting loan default rates using logistic regression",
+            devops = "PCI-DSS compliant cloud infrastructure hosting secure bank transactions under strict audits"
+        )
+        "First Abu Dhabi Bank (FAB)" -> CompanyScenarios(
+            service = "enterprise payment processing and SWIFT financial communication layers",
+            dsa = "interbank routing transactions network modeled as a directed graph to find safe payment paths",
+            ai = "detecting high-value money laundering operations using graph neural networks (GNNs)",
+            devops = "highly resilient financial services cloud with active-active disaster recovery environments"
+        )
+        "Majid Al Futtaim (MAF)" -> CompanyScenarios(
+            service = "SHARE loyalty rewards points reconciliation and POS transactional backends",
+            dsa = "unified retail customer ID lookup map across shopping malls, grocery stores, and cinemas",
+            ai = "hyper-personalized promotion matching analyzing customer purchase baskets using association rules",
+            devops = "multi-tenant retail platform integrating offline POS machines to real-time cloud analytics"
+        )
+        "Emaar" -> CompanyScenarios(
+            service = "luxury property booking and Burj Khalifa tourist ticketing platforms",
+            dsa = "visitor slot booking schedule optimization modeled as an interval-scheduling algorithm",
+            ai = "predictive maintenance scheduling for smart-malls and elevator failure models using sensor feeds",
+            devops = "enterprise booking platform serving millions of global tourists during peak holiday seasons"
+        )
+        "Slack" -> CompanyScenarios(
+            service = "real-time chat message synchronization and workspace presence servers",
+            dsa = "active workspace channel members list where you need to search and auto-complete names in a hierarchical prefix Trie",
+            ai = "workspace sentiment search and smart channel summary highlights",
+            devops = "high-throughput websocket connection pools handling tens of millions of concurrent connections"
+        )
+        "Uber" -> CompanyScenarios(
+            service = "real-time ride-hailing driver dispatch and route matching engine",
+            dsa = "geofence spatial map finding closest active drivers to a rider on a 2D plane",
+            ai = "dynamic surge pricing multipliers based on rider demand and driver density",
+            devops = "fault-tolerant geo-distributed gateways routing millions of telemetry updates per second"
+        )
+        "Netflix" -> CompanyScenarios(
+            service = "video assets encoding, playback state persistence, and CDN catalog lookup",
+            dsa = "distributed network of caching nodes to determine the closest media file chunk path",
+            ai = "personalized recommendation ranking based on past viewing history and contextual watch times",
+            devops = "globally replicated media storage clusters serving multi-gigabit video streams simultaneously"
+        )
+        "Spotify" -> CompanyScenarios(
+            service = "music playbacks synchronization, catalog search, and offline cache validation",
+            dsa = "music recommendation graph database to find similar artists with K degrees of separation",
+            ai = "personalized playlist generation matching user audio feature embeddings and acoustic preference profiles",
+            devops = "highly scalable audio delivery network with client-side offline storage state reconciliation"
+        )
+        "Airbnb" -> CompanyScenarios(
+            service = "global rental properties search and multi-faceted reservation calendar",
+            dsa = "calendar availability grid representing active bookings as non-overlapping intervals",
+            ai = "dynamic price optimizer recommending ideal listing price based on local booking trends and seasonality",
+            devops = "scalable read-heavy catalog database with automatic read replicas and fast Redis caching layers"
+        )
+        "Stripe" -> CompanyScenarios(
+            service = "PCI-compliant payment processing gateway and transactional accounting ledger",
+            dsa = "transaction auditing trail verifying record integrity via a high-performance Merkle Tree",
+            ai = "real-time checkout fraud classification using multi-feature risk scoring models",
+            devops = "zero-tolerance API gateway with strict rate-limiting, tokenization, and active-active failover clusters"
+        )
+        "Google" -> CompanyScenarios(
+            service = "distributed web search crawl indexers and dynamic result ranking",
+            dsa = "high-throughput inverted index document search mapping keyword queries to sorted page listings",
+            ai = "semantic understanding of queries using multi-layer transformer sequence modeling",
+            devops = "massive containerized orchestration cluster running millions of services globally with high redundancy"
+        )
+        "Meta" -> CompanyScenarios(
+            service = "social graph connection networks and news feed delivery server",
+            dsa = "friend recommendation system finding mutual connections using Breadth-First Search (BFS)",
+            ai = "real-time personalized feed ranking prioritizing content with custom weight matrices",
+            devops = "ultra-low latency distributed memcached layers serving billions of database reads per second"
+        )
+        "Microsoft" -> CompanyScenarios(
+            service = "enterprise active directory authentication and cloud workspace synchronization",
+            dsa = "hierarchical role-based access control (RBAC) groups represented as a directed acyclic graph (DAG)",
+            ai = "co-pilot code suggestions matching syntax pattern semantics using pre-trained model inference",
+            devops = "highly available enterprise clouds hosting millions of virtual machines with strict partition isolation"
+        )
+        "Apple" -> CompanyScenarios(
+            service = "iCloud photo backups syncing and push notifications broadcast service",
+            dsa = "adaptive image resolution thumbnail generation using linear space-filling curves",
+            ai = "on-device predictive text and speech-to-text translation using resource-optimized neural models",
+            devops = "highly secure, end-to-end encrypted backup storage with automated sharding and zero-trust verification"
+        )
+        else -> CompanyScenarios(
+            service = "high-performance scalable backend services",
+            dsa = "large-scale data processing system",
+            ai = "predictive user trend modeling and performance estimation",
+            devops = "continuous deployment and automated container infrastructure"
+        )
+    }
+}
+
+fun generateAllQuestions(): List<PrepQuestion> {
+    val companies = listOf(
+        "Emirates Group", "Careem", "Talabat", "Property Finder", "e& (Etisalat)",
+        "noon.com", "Binance Dubai", "Amazon UAE", "G42", "Astra Tech",
+        "Dubizzle", "Mashreq Bank", "First Abu Dhabi Bank (FAB)", "Majid Al Futtaim (MAF)", "Emaar",
+        "Slack", "Uber", "Netflix", "Spotify", "Airbnb", "Stripe", "Google", "Meta", "Microsoft", "Apple"
+    )
+    val fields = listOf(
+        "Software Engineering", "Cybersecurity & Networks", "Data Structures & Algorithms",
+        "Data Science & AI", "Cloud Computing & DevOps"
+    )
+    val difficulties = listOf("Easy", "Medium", "Hard")
+
+    val list = mutableListOf<PrepQuestion>()
+
+    for (company in companies) {
+        val sc = getScenariosForCompany(company)
+        for (field in fields) {
+            for (diff in difficulties) {
+                val text = when (field) {
+                    "Software Engineering" -> when (diff) {
+                        "Easy" -> "For $company, explain the difference between interfaces and abstract classes in Kotlin. How does interface delegation help achieve modularity in $company's Android codebase?"
+                        "Medium" -> "At $company, we maintain high scalability for our ${sc.service}. Explain how you would implement a Thread Pool or Coroutine Dispatcher to safely handle thousands of concurrent operations without blocking the main thread."
+                        "Hard" -> "Design a robust, distributed API rate limiter to protect $company's core ${sc.service}. Compare the advantages of Token Bucket versus Leaky Bucket algorithms, and detail how you would store rate-limit counters in a Redis cache."
+                        else -> ""
+                    }
+                    "Cybersecurity & Networks" -> when (diff) {
+                        "Easy" -> "What is the purpose of salting a password before hashing it at $company? Why is simple hashing like MD5 or SHA-256 vulnerable to rainbow-table and dictionary attacks?"
+                        "Medium" -> "At $company, securing customer transit data is a top priority. Walk through the complete SSL/TLS cryptographic handshake, detailing how symmetric and asymmetric encryption work together to establish a secure channel."
+                        "Hard" -> "Design a Zero-Trust API authentication and authorization architecture for $company's microservices. Detail how JWT access tokens, secure refresh tokens, and OAuth2 scopes prevent token hijacking and replay attacks."
+                        else -> ""
+                    }
+                    "Data Structures & Algorithms" -> when (diff) {
+                        "Easy" -> "Explain the worst-case and average-case time and space complexities of sorting user profiles or listing timestamps at $company using QuickSort versus MergeSort."
+                        "Medium" -> "Suppose you are designing a system for $company to handle a ${sc.dsa}. Explain how you would model this graph or tree structure, and write an algorithm to find the optimal result efficiently."
+                        "Hard" -> "Given a massive, high-frequency stream of concurrent transactions or geo-locations from $company's ${sc.service}, design a custom in-memory data structure (e.g. Quadtree, Segment Tree, or Min-Heap) to query the top K optimal records in O(N log K) time."
+                        else -> ""
+                    }
+                    "Data Science & AI" -> when (diff) {
+                        "Easy" -> "What is the key difference between supervised and unsupervised machine learning? Give a concrete example of how $company can use unsupervised learning to cluster users or identify anomalies."
+                        "Medium" -> "At $company, we use machine learning to predict and optimize our ${sc.ai}. Explain how you would evaluate your model's quality using Precision, Recall, and F1-score, and decide which metric is more critical for our business."
+                        "Hard" -> "Explain the mathematical differences between Gradient Descent, SGD, and Adam optimization. How does the multi-head self-attention mechanism in modern Transformer architectures optimize the training of models for $company's ${sc.ai}?"
+                        else -> ""
+                    }
+                    else -> when (diff) { // Cloud Computing & DevOps
+                        "Easy" -> "Explain the structural difference between lightweight Docker containers and traditional virtual machines (VMs). Why are containers preferred for deploying modern systems at $company?"
+                        "Medium" -> "At $company, we require continuous uptime. Compare Blue-Green and Rolling Update deployment strategies on Kubernetes, and detail how you would handle rolling back a faulty release of the ${sc.service}."
+                        "Hard" -> "Design a highly-available, multi-region containerized cloud architecture on AWS or Azure to host $company's ${sc.service}. Include VPC networking, load balancers, auto-scaling groups, and a fully automated CI/CD pipeline with security scanning."
+                        else -> ""
+                    }
+                }
+                list.add(
+                    PrepQuestion(
+                        company = company,
+                        field = field,
+                        difficulty = diff,
+                        questionText = text
+                    )
+                )
+            }
+        }
+    }
+    return list
+}
+
+fun cleanQuestionText(text: String, company: String): String {
+    var cleaned = text
+    cleaned = cleaned.replace("For $company,", "Explain", ignoreCase = true)
+    cleaned = cleaned.replace("For $company", "Explain", ignoreCase = true)
+    
+    cleaned = cleaned.replace("At $company, we maintain", "In highly scalable systems, we maintain", ignoreCase = true)
+    cleaned = cleaned.replace("At $company we maintain", "In highly scalable systems, we maintain", ignoreCase = true)
+    cleaned = cleaned.replace("At $company, securing", "Securing", ignoreCase = true)
+    cleaned = cleaned.replace("At $company securing", "Securing", ignoreCase = true)
+    cleaned = cleaned.replace("At $company, we use", "In data-driven systems, we use", ignoreCase = true)
+    cleaned = cleaned.replace("At $company we use", "In data-driven systems, we use", ignoreCase = true)
+    cleaned = cleaned.replace("At $company, we require", "In mission-critical platforms, we require", ignoreCase = true)
+    cleaned = cleaned.replace("At $company we require", "In mission-critical platforms, we require", ignoreCase = true)
+    cleaned = cleaned.replace("At $company,", "In enterprise platforms,", ignoreCase = true)
+    cleaned = cleaned.replace("At $company", "In enterprise platforms", ignoreCase = true)
+    
+    cleaned = cleaned.replace("$company's Android codebase", "a modern Android codebase", ignoreCase = true)
+    cleaned = cleaned.replace("$company's core", "the platform's core", ignoreCase = true)
+    cleaned = cleaned.replace("$company's microservices", "modern microservices", ignoreCase = true)
+    cleaned = cleaned.replace("$company's", "the system's", ignoreCase = true)
+    cleaned = cleaned.replace(company, "the system", ignoreCase = true)
+    
+    cleaned = cleaned.replace("protect the system's", "protect the platform's", ignoreCase = true)
+    cleaned = cleaned.replace("protect the system", "protect the platform", ignoreCase = true)
+    cleaned = cleaned.replace("at the system?", "in production systems?", ignoreCase = true)
+    cleaned = cleaned.replace("at the system", "in production", ignoreCase = true)
+    cleaned = cleaned.replace("from the system's", "from the system's", ignoreCase = true)
+    cleaned = cleaned.replace("from the system", "from the system", ignoreCase = true)
+    cleaned = cleaned.replace("how the system can use", "how an application can use", ignoreCase = true)
+    cleaned = cleaned.replace("how the system uses", "how an application uses", ignoreCase = true)
+    cleaned = cleaned.replace("systems at the system?", "systems in production?", ignoreCase = true)
+    cleaned = cleaned.replace("systems at the system", "systems in production", ignoreCase = true)
+    cleaned = cleaned.replace("for the system", "for the application", ignoreCase = true)
+    cleaned = cleaned.replace("designing a system for the system to", "designing a system to", ignoreCase = true)
+    cleaned = cleaned.replace("designing a system for the system", "designing a system", ignoreCase = true)
+    cleaned = cleaned.replace("For the system:", "Explain:", ignoreCase = true)
+    
+    cleaned = cleaned.replace("Explain, explain", "Explain", ignoreCase = true)
+    cleaned = cleaned.replace("Explain, ", "Explain ", ignoreCase = true)
+    
+    return cleaned.trim()
 }
 

@@ -75,3 +75,13 @@ data class Quiz(
     val courseTitle: String,
     val questions: List<QuizQuestion>
 )
+
+@Entity(tableName = "prep_questions")
+data class PrepQuestion(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val company: String,
+    val field: String,
+    val difficulty: String,
+    val questionText: String
+)
+

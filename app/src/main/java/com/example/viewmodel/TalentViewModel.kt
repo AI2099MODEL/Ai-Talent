@@ -126,98 +126,23 @@ class TalentViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun loadDubaiMockQuestion() {
-        val company = _selectedCompany.value
         val field = _selectedField.value
         val difficulty = _selectedDifficulty.value
 
-        val question = when (field) {
-            "Software Engineering" -> when (difficulty) {
-                "Easy" -> "Explain the difference between interface and abstract class in modern object-oriented programming. When would you use each?"
-                "Medium" -> when (company) {
-                    "Emirates Group" -> "Emirates Group uses high-availability booking microservices. What is a load balancer, and how does Round Robin hashing distribute requests across backend instances?"
-                    "Careem" -> "Careem handles massive concurrent booking requests. Describe how the Singleton pattern or Thread Pools can prevent race conditions in memory-managed apps."
-                    "Talabat" -> "Talabat needs custom state handling for order tracking. Explain how you would design a state-pattern in Kotlin to cleanly represent order transitions (Created -> Dispatched -> Delivered)."
-                    "Property Finder" -> "Property Finder lists millions of properties. Explain the difference between standard database B-Tree index and Full-Text Search index (like Elasticsearch)."
-                    "e& (Etisalat)" -> "What are the key architectural differences between REST, GraphQL, and gRPC? When would you prefer gRPC for telecom microservice communication?"
-                    "noon.com" -> "For noon's checkout flow, how would you design a distributed lock mechanism to prevent two customers from reserving the last active inventory item?"
-                    "Binance Dubai" -> "What is a Memory Pool (mempool) in blockchain technology, and how are transaction fees prioritized inside it?"
-                    else -> "Describe the SOLID design principles. How does the Dependency Inversion Principle facilitate testing and loose coupling in large-scale software systems?"
+        viewModelScope.launch {
+            try {
+                val questionsList = repository.getGenericPrepQuestions(field, difficulty)
+                if (questionsList.isNotEmpty()) {
+                    _currentQuestion.value = questionsList.random().questionText
+                } else {
+                    _currentQuestion.value = "Preparing customized assessment question..."
                 }
-                else -> when (company) {
-                    "Emirates Group" -> "Design a rate limiter for Emirates' ticketing APIs. How would you choose between Token Bucket and Leaky Bucket algorithms under heavy scraping pressure?"
-                    "Careem" -> "How would you design a distributed publish-subscribe caching channel (like Kafka or Redis) to broadcast real-time driver availability to millions of riders?"
-                    "Talabat" -> "Talabat handles high-frequency geographic writes. How do caching layers (Redis) and write-behind queues protect database layers from transactional bottlenecks?"
-                    "Property Finder" -> "Design a database schema for Property Finder to support faceted search (filtering properties by price, beds, location, and amenities) with fast queries."
-                    "e& (Etisalat)" -> "Explain high-availability multi-region active-active cloud architecture. How do you resolve write conflicts and guarantee eventual consistency?"
-                    "noon.com" -> "noon.com handles millions of active SKUs. Design a distributed cache invalidation strategy to update product pricing instantly without database overload."
-                    "Binance Dubai" -> "Design a low-latency order matching engine for Binance. How do you handle transaction locking, in-memory orders, and ledger reconciliation under high volume?"
-                    else -> "Explain how database indexing works under the hood (e.g. B+ Trees vs Hash Indexing). How does a composite index affect read queries vs write performance?"
-                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _currentQuestion.value = "Error loading question: ${e.message}"
             }
-            "Cybersecurity & Networks" -> when (difficulty) {
-                "Easy" -> "Explain the purpose of Salt in hashing passwords. Why is hashing passwords alone not enough to prevent rainbow-table attacks?"
-                "Medium" -> when (company) {
-                    "Emirates Group" -> "Emirates Group holds passenger credit cards. Explain how TLS/SSL handshakes secure communications and verify server identity."
-                    "Careem" -> "How would you design secure JWT token authentication for Careem's mobile apps to prevent token hijacking and replay attacks?"
-                    "Talabat" -> "What is Cross-Site Request Forgery (CSRF)? How can custom request headers or Anti-CSRF tokens defend food-delivery web client transactions?"
-                    "e& (Etisalat)" -> "Explain the key differences between Symmetric and Asymmetric encryption. Describe how they work together in HTTPS."
-                    "Binance Dubai" -> "Explain the concept of Multi-Signature (Multi-Sig) wallets and how they enhance secure asset custody for blockchain enterprises."
-                    else -> "What is the difference between OAuth 2.0 and OpenID Connect? When do you use each protocol in single sign-on enterprise systems?"
-                }
-                else -> when (company) {
-                    "e& (Etisalat)" -> "Explain the mechanisms of a Distributed Denial of Service (DDoS) attack at layer 7 vs layer 3. How do you mitigate each in large telecom networks?"
-                    "Binance Dubai" -> "What is a Reentrancy Attack in smart contracts, and how do you write secure contract code to prevent it? Give examples of reentrancy guard patterns."
-                    else -> "What is Cross-Site Scripting (XSS) and SQL Injection? Detail the precise defense mechanisms you would implement in a modern backend framework to eliminate both."
-                }
-            }
-            "Data Structures & Algorithms" -> when (difficulty) {
-                "Easy" -> "What is the time and space complexity of sorting an array of size N using QuickSort in its average and worst cases?"
-                "Medium" -> when (company) {
-                    "Emirates Group" -> "Suppose you are writing a flight route finder. How would you model airports as a graph and find the shortest travel time path using Dijkstra's algorithm?"
-                    "Careem" -> "You need to find the nearest driver in a 2D space. How does a Spatial Hash or Quadtree optimize nearest-neighbor search compared to O(N) distance checks?"
-                    "Talabat" -> "How can you use a Trie (Prefix Tree) data structure to implement a fast autocomplete search bar for Talabat's food search engine?"
-                    "Property Finder" -> "Given a list of properties with their prices, how would you design an algorithm to find the Top K cheapest properties in a specific neighborhood in O(N log K) time?"
-                    "noon.com" -> "noon.com needs to merge two sorted lists of products. Explain how you would implement the merge step of MergeSort with O(N) time and O(1) space."
-                    else -> "Explain how a HashMap handles hash collisions under the hood. What is the complexity when a collision occurs, and how does Java/Kotlin resolve it?"
-                }
-                else -> when (company) {
-                    "Emirates Group" -> "Given a directed graph of flight connections across GCC, how do you find all strongly connected components (fully linked routes) using Tarjan's or Kosaraju's algorithm?"
-                    "Careem" -> "Given a grid-based map of Dubai, how would you implement the A* search algorithm for optimal driver route dispatching, including distance heuristics?"
-                    "noon.com" -> "Given an array of product price intervals (sales start and end dates), how would you find the maximum number of overlapping sale intervals?"
-                    else -> "What is the Knapsack problem? Explain how you would solve the 0/1 Knapsack problem using Dynamic Programming, detailing the time and space complexity."
-                }
-            }
-            "Data Science & AI" -> when (difficulty) {
-                "Easy" -> "What is the difference between supervised and unsupervised learning? Provide two common examples of algorithms used in each."
-                "Medium" -> when (company) {
-                    "Emirates Group" -> "Emirates wants to predict ticket cancellations. Explain precision, recall, and F1-score. Which metric is more critical if the cost of empty seats is very high?"
-                    "Careem" -> "How can Careem apply predictive machine learning to dynamically calculate surge pricing multipliers during high-traffic hours?"
-                    "Talabat" -> "Explain how you would build a restaurant recommendation engine for Talabat users using Collaborative Filtering and Matrix Factorization."
-                    "Property Finder" -> "Describe how you would build a machine learning regression model to predict property prices in Dubai based on square footage, location, and rooms."
-                    "noon.com" -> "How would you design a classification model to detect fraudulent credit card transactions on noon's e-commerce platform?"
-                    else -> "What is overfitting in machine learning? Explain how regularization (L1 Lasso vs L2 Ridge) helps model generalization."
-                }
-                else -> when (company) {
-                    "noon.com" -> "noon.com wants to analyze user review sentiments. Explain how the Transformer self-attention mechanism processes text sequence semantics better than traditional RNNs."
-                    else -> "Explain the mathematical difference between gradient descent, stochastic gradient descent (SGD), and Adam optimization. When would you prefer Adam?"
-                }
-            }
-            else -> when (difficulty) { // Cloud & DevOps
-                "Easy" -> "What is the difference between virtual machines (VMs) and Docker containers? Why are containers preferred for modern scalable systems?"
-                "Medium" -> when (company) {
-                    "Emirates Group" -> "Emirates Group needs zero-downtime deployments. Explain the difference between Blue-Green and Rolling Update deployment strategies on Kubernetes."
-                    "Careem" -> "Explain how you would configure AWS Auto-Scaling and CloudWatch metrics to dynamically handle sudden spikes in Careem traffic during rush hours."
-                    "e& (Etisalat)" -> "What is Container Orchestration? Explain how Kubernetes Service, Pods, and Ingress resources work together to route traffic in a telecom microservice."
-                    else -> "What is Infrastructure as Code (IaC)? How does Terraform help maintain consistency across development, staging, and production environments?"
-                }
-                else -> when (company) {
-                    "e& (Etisalat)" -> "Design a highly-available, multi-region containerized infrastructure on AWS using EKS, Route53, and RDS Aurora Global databases to guarantee 99.99% uptime."
-                    else -> "Design a secure, highly-available CI/CD pipeline from code commit on GitHub to containerized deployment on AWS EKS, including static analysis (SonarQube) and automated rollback."
-                }
-            }
+            _currentGradingResult.value = null
         }
-        _currentQuestion.value = question
-        _currentGradingResult.value = null
     }
 
     fun loadNewQuestion(track: String) {

@@ -491,6 +491,87 @@ fun DashboardScreen(
                 }
             }
 
+            // Quick Access Action Cards
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "QUICK ACTIONS",
+                        color = LightGray.copy(alpha = 0.5f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                    
+                    val actions = listOf(
+                        Triple("AI Mock Interview", "Practice real interview questions with real-time AI scoring & grading.", 3),
+                        Triple("Curated Courses", "Master key CS topics from Software Eng to Cloud & DevOps.", 1),
+                        Triple("Learning Roadmap", "Track milestones to level up your placement readiness.", 2)
+                    )
+                    
+                    actions.forEach { (title, subtitle, tabIdx) ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onNavigateToTab(tabIdx) },
+                            colors = CardDefaults.cardColors(containerColor = Slate900.copy(alpha = 0.75f)),
+                            border = BorderStroke(1.dp, Slate700.copy(alpha = 0.25f)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(GlowingAmber.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = when (tabIdx) {
+                                            3 -> Icons.Default.Star
+                                            1 -> Icons.Default.Info
+                                            else -> Icons.Default.List
+                                        },
+                                        contentDescription = null,
+                                        tint = GlowingAmber,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = title,
+                                        color = Color.TrueWhite,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = subtitle,
+                                        color = LightGray.copy(alpha = 0.6f),
+                                        fontSize = 11.sp,
+                                        lineHeight = 14.sp
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.ArrowForward,
+                                    contentDescription = null,
+                                    tint = LightGray.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Extra padding at the bottom of list
             item {
                 Spacer(modifier = Modifier.height(24.dp))
@@ -1185,16 +1266,21 @@ fun StudyScreen(viewModel: TalentViewModel) {
                 ) {
                     items(years) { year ->
                         val isSelected = selectedYear == year
+                        val chipBgColor = if (isSelected) GlowingAmber else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f)
+                        val chipTextColor = if (isSelected) Slate900 else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f)
+                        val chipBorderColor = if (isSelected) GlowingAmber else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.15f)
+                        
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(if (isSelected) GlowingAmber else Slate800)
+                                .background(chipBgColor)
+                                .border(1.dp, chipBorderColor, RoundedCornerShape(16.dp))
                                 .clickable { selectedYear = year }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
                             Text(
                                 text = year,
-                                color = if (isSelected) Slate900 else androidx.compose.ui.graphics.Color.White,
+                                color = chipTextColor,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1221,16 +1307,21 @@ fun StudyScreen(viewModel: TalentViewModel) {
                 ) {
                     items(subjects) { subj ->
                         val isSelected = selectedSubject == subj
+                        val chipBgColor = if (isSelected) NeonCyan else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f)
+                        val chipTextColor = if (isSelected) Slate900 else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f)
+                        val chipBorderColor = if (isSelected) NeonCyan else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.15f)
+                        
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(if (isSelected) NeonCyan else Slate800)
+                                .background(chipBgColor)
+                                .border(1.dp, chipBorderColor, RoundedCornerShape(16.dp))
                                 .clickable { selectedSubject = subj }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
                             Text(
                                 text = subj,
-                                color = if (isSelected) Slate900 else androidx.compose.ui.graphics.Color.White,
+                                color = chipTextColor,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1640,17 +1731,21 @@ fun RoadmapScreen(viewModel: TalentViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text(
-                text = "Your Talent Roadmap",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Track your learning items dynamically. Complete these modules to raise your placement readiness index.",
-                color = LightGray.copy(alpha = 0.6f),
-                fontSize = 13.sp
-            )
+            Column {
+                Text(
+                    text = "Your Talent Roadmap",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Track your learning items dynamically. Complete these modules to raise your placement readiness index.",
+                    color = LightGray.copy(alpha = 0.6f),
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
+            }
         }
 
         if (totalCount > 0) {
@@ -1831,14 +1926,45 @@ fun MockInterviewMainPage(viewModel: TalentViewModel) {
     val gradingResult by viewModel.currentGradingResult.collectAsStateWithLifecycle()
     val historyLogs by viewModel.interviewLogs.collectAsStateWithLifecycle()
 
-    val selectedCompany by viewModel.selectedCompany.collectAsStateWithLifecycle()
     val selectedField by viewModel.selectedField.collectAsStateWithLifecycle()
     val selectedDifficulty by viewModel.selectedDifficulty.collectAsStateWithLifecycle()
 
     var studentAnswer by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
 
-    val companies = listOf("Emirates Group", "Careem", "Talabat", "Property Finder", "e& (Etisalat)", "noon.com", "Binance Dubai", "Amazon UAE")
+    val defaultDuration = when (selectedDifficulty) {
+        "Easy" -> 300
+        "Medium" -> 600
+        "Hard" -> 900
+        else -> 300
+    }
+    var timeRemaining by remember { mutableStateOf(defaultDuration) }
+    var isTimerRunning by remember { mutableStateOf(true) }
+    var maxTime by remember { mutableStateOf(defaultDuration) }
+
+    // Reset when active question or difficulty changes
+    LaunchedEffect(activeQuestion, selectedDifficulty) {
+        val duration = when (selectedDifficulty) {
+            "Easy" -> 300
+            "Medium" -> 600
+            "Hard" -> 900
+            else -> 300
+        }
+        timeRemaining = duration
+        maxTime = duration
+        isTimerRunning = true
+    }
+
+    // Tick the timer
+    LaunchedEffect(isTimerRunning, activeQuestion, selectedDifficulty) {
+        if (isTimerRunning) {
+            while (timeRemaining > 0) {
+                kotlinx.coroutines.delay(1000L)
+                timeRemaining = (timeRemaining - 1).coerceAtLeast(0)
+            }
+        }
+    }
+
     val fields = listOf("Software Engineering", "Cybersecurity & Networks", "Data Structures & Algorithms", "Data Science & AI", "Cloud Computing & DevOps")
     val difficulties = listOf("Easy", "Medium", "Hard")
 
@@ -1877,7 +2003,7 @@ fun MockInterviewMainPage(viewModel: TalentViewModel) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Prepare for elite CS placements in Dubai by selecting a target company and core field below.",
+                    text = "Prepare for elite CS placements by selecting your target field and difficulty below. The assessment draws from a rich database of top corporate interview scenarios.",
                     color = LightGray.copy(alpha = 0.6f),
                     fontSize = 12.sp,
                     lineHeight = 16.sp
@@ -1885,80 +2011,82 @@ fun MockInterviewMainPage(viewModel: TalentViewModel) {
             }
         }
 
-        // Company Picker Row
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "Target Multinational Company:",
-                    color = Color.White,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(companies) { company ->
-                        val isSelected = company == selectedCompany
-                        val chipBgColor = if (isSelected) GlowingAmber else Slate800
-                        val chipTextColor = if (isSelected) Slate900 else Color.White
-                        val chipBorderColor = if (isSelected) GlowingAmber else Slate700
-                        
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(chipBgColor)
-                                .border(1.dp, chipBorderColor, RoundedCornerShape(8.dp))
-                                .clickable { viewModel.setCompany(company) }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                                .testTag("chip_company_${company.replace(" ", "_")}")
-                        ) {
-                            Text(
-                                text = company,
-                                color = chipTextColor,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
         // CS Field Picker Row
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "Computer Science Field:",
+                    text = "Computer Science Field Track:",
                     color = Color.White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(fields) { field ->
+                
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    fields.forEach { field ->
                         val isSelected = field == selectedField
-                        val chipBgColor = if (isSelected) CosmicBlue else Slate800
-                        val chipTextColor = if (isSelected) Color.White else LightGray
-                        val chipBorderColor = if (isSelected) CosmicBlue else Slate700
+                        val (icon, description, accentColor) = when (field) {
+                            "Software Engineering" -> Triple(Icons.Default.Edit, "System design, object-oriented design, patterns, and code quality assessments.", CosmicBlue)
+                            "Cybersecurity & Networks" -> Triple(Icons.Default.Info, "Network protocols, security frameworks, threat mitigation, and cryptography.", NeonGreen)
+                            "Data Structures & Algorithms" -> Triple(Icons.Default.List, "Analysis of sorting, searching, graphs, trees, and time/space complexity.", GlowingAmber)
+                            "Data Science & AI" -> Triple(Icons.Default.Star, "Neural network modeling, data visualization, predictive analytics, and ML pipelines.", Color(0xFFC084FC))
+                            "Cloud Computing & DevOps" -> Triple(Icons.Default.Home, "Containers, orchestration, continuous delivery pipelines, and cloud systems.", Color(0xFF22D3EE))
+                            else -> Triple(Icons.Default.Info, "", CosmicBlue)
+                        }
+
+                        val cardBgColor = if (isSelected) Slate800 else Slate900.copy(alpha = 0.5f)
+                        val borderColor = if (isSelected) accentColor else Slate700.copy(alpha = 0.3f)
                         
-                        Box(
+                        Card(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(chipBgColor)
-                                .border(1.dp, chipBorderColor, RoundedCornerShape(8.dp))
+                                .fillMaxWidth()
                                 .clickable { viewModel.setField(field) }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                                .testTag("chip_field_${field.replace(" ", "_")}")
+                                .testTag("chip_field_${field.replace(" ", "_")}"),
+                            colors = CardDefaults.cardColors(containerColor = cardBgColor),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, borderColor)
                         ) {
-                            Text(
-                                text = field,
-                                color = chipTextColor,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (isSelected) accentColor.copy(alpha = 0.15f) else Slate800)
+                                        .padding(8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = if (isSelected) accentColor else LightGray.copy(alpha = 0.6f)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = field,
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = description,
+                                        color = LightGray.copy(alpha = 0.6f),
+                                        fontSize = 11.sp,
+                                        lineHeight = 14.sp
+                                    )
+                                }
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = accentColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -2019,6 +2147,144 @@ fun MockInterviewMainPage(viewModel: TalentViewModel) {
             }
         }
 
+        // Countdown Timer Card
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Slate800),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Slate700),
+                modifier = Modifier.fillMaxWidth().testTag("countdown_timer_card")
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (timeRemaining == 0) Icons.Default.Warning else Icons.Default.Info,
+                                contentDescription = "Timer Status",
+                                tint = if (timeRemaining == 0) Color.Red else if (timeRemaining <= maxTime * 0.25) GlowingAmber else CosmicBlue,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (timeRemaining == 0) "TIME'S UP!" else "ASSESSMENT TIMER",
+                                color = if (timeRemaining == 0) Color.Red else if (timeRemaining <= maxTime * 0.25) GlowingAmber else Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                        
+                        val minutes = timeRemaining / 60
+                        val seconds = timeRemaining % 60
+                        val timeString = String.format("%02d:%02d", minutes, seconds)
+                        
+                        Text(
+                            text = timeString,
+                            color = if (timeRemaining == 0) Color.Red else if (timeRemaining <= maxTime * 0.25) GlowingAmber else Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        )
+                    }
+
+                    val ratio = if (maxTime > 0) timeRemaining.toFloat() / maxTime.toFloat() else 0f
+                    val progressColor = if (timeRemaining == 0) Color.Red 
+                                         else if (timeRemaining <= maxTime * 0.25) GlowingAmber 
+                                         else CosmicBlue
+                    
+                    LinearProgressIndicator(
+                        progress = ratio,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = progressColor,
+                        trackColor = Slate700.copy(alpha = 0.4f)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (timeRemaining == 0) {
+                                "Focus period expired. Submit what you have!"
+                            } else if (!isTimerRunning) {
+                                "Timer paused. Take a breath and resume."
+                            } else {
+                                "Simulating real interview time pressure."
+                            },
+                            color = LightGray.copy(alpha = 0.6f),
+                            fontSize = 11.sp
+                        )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (timeRemaining > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .border(1.dp, Slate700, RoundedCornerShape(6.dp))
+                                        .clickable {
+                                            timeRemaining += 60
+                                            maxTime = maxOf(maxTime, timeRemaining)
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        .testTag("timer_add_minute")
+                                ) {
+                                    Text(
+                                        text = "+1 MIN",
+                                        color = LightGray,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (timeRemaining == 0) GlowingAmber else CosmicBlue)
+                                    .clickable {
+                                        if (timeRemaining == 0) {
+                                            timeRemaining = when (selectedDifficulty) {
+                                                "Easy" -> 300
+                                                "Medium" -> 600
+                                                "Hard" -> 900
+                                                else -> 300
+                                            }
+                                            maxTime = timeRemaining
+                                            isTimerRunning = true
+                                        } else {
+                                            isTimerRunning = !isTimerRunning
+                                        }
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                    .testTag("timer_play_pause")
+                            ) {
+                                Text(
+                                    text = if (timeRemaining == 0) "RESTART" else if (isTimerRunning) "PAUSE" else "RESUME",
+                                    color = Color.TrueWhite,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Active Question Card
         item {
             Card(
@@ -2041,7 +2307,7 @@ fun MockInterviewMainPage(viewModel: TalentViewModel) {
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = selectedCompany.uppercase(),
+                                    text = "MOCK ASSESSMENT",
                                     color = GlowingAmber,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Black
@@ -2101,10 +2367,15 @@ fun MockInterviewMainPage(viewModel: TalentViewModel) {
                 
                 OutlinedTextField(
                     value = studentAnswer,
-                    onValueChange = { studentAnswer = it },
+                    onValueChange = { if (timeRemaining > 0) studentAnswer = it },
+                    readOnly = (timeRemaining == 0),
                     placeholder = { 
                         Text(
-                            text = "Explain your technical answer. Mention algorithmic complexity, trade-offs, and design choices to score high...",
+                            text = if (timeRemaining == 0) {
+                                "Time's Up! You can no longer edit your answer, but you can still submit what you've typed or restart the timer above."
+                            } else {
+                                "Explain your technical answer. Mention algorithmic complexity, trade-offs, and design choices to score high..."
+                            },
                             fontSize = 12.sp,
                             color = LightGray.copy(alpha = 0.4f)
                         ) 
@@ -2142,7 +2413,8 @@ fun MockInterviewMainPage(viewModel: TalentViewModel) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("AI Grading System...", color = Color.White, fontSize = 13.sp)
                     } else {
-                        Text("Submit & Grade Answer (Free & Offline)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        val buttonText = if (timeRemaining == 0) "Submit Partial Answer (Time Expired)" else "Submit & Grade Answer (Free & Offline)"
+                        Text(buttonText, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
             }

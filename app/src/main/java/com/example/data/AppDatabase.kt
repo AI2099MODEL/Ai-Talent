@@ -52,9 +52,27 @@ interface MentorDao {
     suspend fun clearHistory()
 }
 
+@Dao
+interface PrepQuestionDao {
+    @Query("SELECT * FROM prep_questions WHERE company = :company AND field = :field AND difficulty = :difficulty")
+    suspend fun getQuestions(company: String, field: String, difficulty: String): List<PrepQuestion>
+
+    @Query("SELECT * FROM prep_questions WHERE field = :field AND difficulty = :difficulty")
+    suspend fun getQuestionsByFieldAndDifficulty(field: String, difficulty: String): List<PrepQuestion>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertQuestions(questions: List<PrepQuestion>)
+
+    @Query("SELECT COUNT(*) FROM prep_questions")
+    suspend fun getCount(): Int
+
+    @Query("DELETE FROM prep_questions")
+    suspend fun clearQuestions()
+}
+
 @Database(
-    entities = [UserProfile::class, LearningRoadmapItem::class, InterviewLog::class, MentorMessage::class],
-    version = 4,
+    entities = [UserProfile::class, LearningRoadmapItem::class, InterviewLog::class, MentorMessage::class, PrepQuestion::class],
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -62,6 +80,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun learningDao(): LearningDao
     abstract fun interviewDao(): InterviewDao
     abstract fun mentorDao(): MentorDao
+    abstract fun prepQuestionDao(): PrepQuestionDao
 
     companion object {
         @Volatile
