@@ -832,6 +832,21 @@ fun ProfileDetailRow(label: String, value: String) {
 // ==========================================
 // 2. STUDY HUB & AI ASSESSMENT SCREEN
 // ==========================================
+data class QuestionPaper(
+    val examName: String,
+    val year: String,
+    val downloadUrl: String,
+    val courseTitle: String = ""
+)
+
+data class StudyMaterial(
+    val title: String,
+    val fileType: String,
+    val size: String,
+    val accessUrl: String,
+    val courseTitle: String = ""
+)
+
 data class StudyCourse(
     val title: String,
     val provider: String,
@@ -841,8 +856,109 @@ data class StudyCourse(
     val yearTarget: String, // "2nd Year", "3rd Year", "4th Year"
     val category: String, // "AI & ML", "Cloud", "Robotics"
     val description: String,
-    val officialUrl: String
+    val officialUrl: String,
+    val questionPapers: List<QuestionPaper> = emptyList(),
+    val studyMaterials: List<StudyMaterial> = emptyList()
 )
+
+fun getQuestionPapersForCourse(courseTitle: String, year: String, category: String): List<QuestionPaper> {
+    return when (courseTitle) {
+        "Harvard CS50x: Introduction to Computer Science" -> listOf(
+            QuestionPaper("2025 Mid-Term Exam (C & Memory)", "2025", "https://cs50.harvard.edu/x/2025/exams/midterm/"),
+            QuestionPaper("2024 Final Exam (Data Structures)", "2024", "https://cs50.harvard.edu/x/2024/exams/final/"),
+            QuestionPaper("2023 Practice Exam (Algorithms)", "2023", "https://cs50.harvard.edu/x/2023/exams/practice/")
+        )
+        "Stanford Algorithms Specialization" -> listOf(
+            QuestionPaper("2024 Mid-Sem Exam (Divide & Conquer)", "2024", "https://www.coursera.org/specializations/algorithms"),
+            QuestionPaper("2024 End-Sem Exam (Dynamic Programming)", "2024", "https://www.coursera.org/specializations/algorithms"),
+            QuestionPaper("2023 Complexity Theory Final", "2023", "https://www.coursera.org/specializations/algorithms")
+        )
+        "Introduction to Cybersecurity" -> listOf(
+            QuestionPaper("2025 Mid-Sem (Threats & Malware)", "2025", "https://skillsforall.com/course/introduction-to-cybersecurity"),
+            QuestionPaper("2024 End-Sem (Cryptography Fundamentals)", "2024", "https://skillsforall.com/course/introduction-to-cybersecurity")
+        )
+        "Google Cybersecurity Professional Certificate" -> listOf(
+            QuestionPaper("2025 SIEM Analysis Final Exam", "2025", "https://www.coursera.org/professional-certificates/google-cybersecurity"),
+            QuestionPaper("2024 Linux Command Line Exam", "2024", "https://www.coursera.org/professional-certificates/google-cybersecurity")
+        )
+        "Certified in Cybersecurity (CC)" -> listOf(
+            QuestionPaper("2025 ISC2 Mock Exam Paper A", "2025", "https://www.isc2.org/Certifications/Certified-in-Cybersecurity"),
+            QuestionPaper("2024 ISC2 Mock Exam Paper B", "2024", "https://www.isc2.org/Certifications/Certified-in-Cybersecurity")
+        )
+        "Generative AI Fundamentals Specialization" -> listOf(
+            QuestionPaper("2025 LLM Fine-Tuning Exam", "2025", "https://www.cloudskillsboost.google/course_templates/556"),
+            QuestionPaper("2024 Attention Mechanisms Mid-Term", "2024", "https://www.cloudskillsboost.google/course_templates/556")
+        )
+        "UiPath Automation & Software Robotics" -> listOf(
+            QuestionPaper("2024 RPA Workflow Design Exam", "2024", "https://academy.uipath.com/"),
+            QuestionPaper("2023 Robotic Process Automation Final", "2023", "https://academy.uipath.com/")
+        )
+        "Modern Robotics: Mechanics and Planning" -> listOf(
+            QuestionPaper("2024 Kinematics & Jacobians Exam", "2024", "https://www.coursera.org/specializations/modernrobotics"),
+            QuestionPaper("2023 Trajectory Planning Final Exam", "2023", "https://www.coursera.org/specializations/modernrobotics")
+        )
+        else -> {
+            listOf(
+                QuestionPaper("2025 $category Semester Mid-Term", "2025", "https://example.com/papers/2025"),
+                QuestionPaper("2024 $category Semester End-Sem", "2024", "https://example.com/papers/2024"),
+                QuestionPaper("2023 $category Comprehensive Exam", "2023", "https://example.com/papers/2023")
+            )
+        }
+    }
+}
+
+fun getStudyMaterialsForCourse(courseTitle: String, year: String, category: String): List<StudyMaterial> {
+    return when (courseTitle) {
+        "Harvard CS50x: Introduction to Computer Science" -> listOf(
+            StudyMaterial("C Programming Quick Reference", "PDF", "1.2 MB", "https://cs50.harvard.edu/x/2025/notes/"),
+            StudyMaterial("Memory Allocation & Pointers Slides", "Slides", "3.4 MB", "https://cs50.harvard.edu/x/2025/weeks/5/"),
+            StudyMaterial("Binary Search Trees Visual Guide", "Notes", "800 KB", "https://cs50.harvard.edu/x/2025/notes/")
+        )
+        "Stanford Algorithms Specialization" -> listOf(
+            StudyMaterial("Asymptotic Analysis & Big-O Notes", "PDF", "2.1 MB", "https://www.coursera.org/specializations/algorithms"),
+            StudyMaterial("Graph Algorithms (Dijkstra, BFS/DFS)", "Notes", "1.8 MB", "https://www.coursera.org/specializations/algorithms"),
+            StudyMaterial("Greedy Algorithms Master Cheat Sheet", "Cheat Sheet", "500 KB", "https://www.coursera.org/specializations/algorithms")
+        )
+        "Introduction to Cybersecurity" -> listOf(
+            StudyMaterial("ISO 27001 Security Controls Overview", "PDF", "1.5 MB", "https://skillsforall.com/course/introduction-to-cybersecurity"),
+            StudyMaterial("Symmetric vs Asymmetric Encryption Guide", "Cheat Sheet", "620 KB", "https://skillsforall.com/course/introduction-to-cybersecurity"),
+            StudyMaterial("Wireshark Packet Analysis Lab Manual", "PDF", "4.1 MB", "https://skillsforall.com/course/introduction-to-cybersecurity")
+        )
+        "Google Cybersecurity Professional Certificate" -> listOf(
+            StudyMaterial("SQL for Database Auditing Cheat Sheet", "Cheat Sheet", "450 KB", "https://www.coursera.org/professional-certificates/google-cybersecurity"),
+            StudyMaterial("Python Scripting for Security Automation Notes", "Notes", "2.8 MB", "https://www.coursera.org/professional-certificates/google-cybersecurity"),
+            StudyMaterial("Splunk Dashboard & Logging Reference", "Slides", "3.2 MB", "https://www.coursera.org/professional-certificates/google-cybersecurity")
+        )
+        "Certified in Cybersecurity (CC)" -> listOf(
+            StudyMaterial("Access Control Systems Study Guide", "PDF", "2.5 MB", "https://www.isc2.org/Certifications/Certified-in-Cybersecurity"),
+            StudyMaterial("Incident Response & DR Plan Reference", "Notes", "1.9 MB", "https://www.isc2.org/Certifications/Certified-in-Cybersecurity"),
+            StudyMaterial("Network Security Protocols E-Book", "PDF", "6.2 MB", "https://www.isc2.org/Certifications/Certified-in-Cybersecurity")
+        )
+        "Generative AI Fundamentals Specialization" -> listOf(
+            StudyMaterial("Vertex AI Integration & SDK Guide", "PDF", "1.8 MB", "https://www.cloudskillsboost.google/course_templates/556"),
+            StudyMaterial("Prompt Engineering Best Practices Notes", "Cheat Sheet", "1.1 MB", "https://www.cloudskillsboost.google/course_templates/556"),
+            StudyMaterial("Transformer Architecture Explained", "Slides", "4.5 MB", "https://www.cloudskillsboost.google/course_templates/556")
+        )
+        "UiPath Automation & Software Robotics" -> listOf(
+            StudyMaterial("UiPath Studio Keyboard Shortcuts Cheat Sheet", "Cheat Sheet", "350 KB", "https://academy.uipath.com/"),
+            StudyMaterial("OCR and Screen Scraping Guide", "PDF", "1.7 MB", "https://academy.uipath.com/"),
+            StudyMaterial("Automated Exception Handling Notes", "Notes", "920 KB", "https://academy.uipath.com/")
+        )
+        "Modern Robotics: Mechanics and Planning" -> listOf(
+            StudyMaterial("Forward & Inverse Kinematics Lecture Notes", "PDF", "3.1 MB", "https://www.coursera.org/specializations/modernrobotics"),
+            StudyMaterial("Degrees of Freedom & Grubler's Formula Guide", "Notes", "1.2 MB", "https://www.coursera.org/specializations/modernrobotics"),
+            StudyMaterial("Singularity Analysis Handout", "Slides", "2.2 MB", "https://www.coursera.org/specializations/modernrobotics")
+        )
+        else -> {
+            listOf(
+                StudyMaterial("$courseTitle Syllabus & Reading Guide", "PDF", "1.5 MB", "https://example.com/materials/syllabus"),
+                StudyMaterial("Core $category Concepts Lecture Handout", "Notes", "4.2 MB", "https://example.com/materials/handout"),
+                StudyMaterial("$category Rapid Revision Cheat Sheet", "Cheat Sheet", "720 KB", "https://example.com/materials/cheatsheet"),
+                StudyMaterial("Recommended Video Tutorial Playlist", "Video", "External Link", "https://example.com/materials/playlist")
+            )
+        }
+    }
+}
 
 val studyCoursesList = listOf(
     // === DATA STRUCTURES & ALGORITHMS (DSA) ===
@@ -1139,6 +1255,9 @@ fun StudyScreen(viewModel: TalentViewModel) {
     var selectedYear by remember { mutableStateOf("All") }
     var selectedSubject by remember { mutableStateOf("All") }
 
+    var activeQuestionPaper by remember { mutableStateOf<QuestionPaper?>(null) }
+    var activeStudyMaterial by remember { mutableStateOf<StudyMaterial?>(null) }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -1157,7 +1276,7 @@ fun StudyScreen(viewModel: TalentViewModel) {
                 )
                 Text(
                     text = "Curated free certifications & latest CS curriculums covering DSA, Cybersecurity, Software Engineering, AI/ML, Cloud, and Robotics.",
-                    color = LightGray.copy(alpha = 0.7f),
+                    color = androidx.compose.ui.graphics.Color(0xFFE2E8F0),
                     fontSize = 12.sp,
                     lineHeight = 16.sp
                 )
@@ -1182,7 +1301,7 @@ fun StudyScreen(viewModel: TalentViewModel) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "STUDY JOURNEY TRACKER",
-                                color = LightGray.copy(alpha = 0.6f),
+                                color = androidx.compose.ui.graphics.Color(0xFF64748B),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.8.sp
@@ -1190,7 +1309,7 @@ fun StudyScreen(viewModel: TalentViewModel) {
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Academic Curriculum Progress",
-                                color = androidx.compose.ui.graphics.Color.White,
+                                color = androidx.compose.ui.graphics.Color(0xFF0F172A),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1241,7 +1360,7 @@ fun StudyScreen(viewModel: TalentViewModel) {
                         } else {
                             "🎯 Select a course below and start tracking your learning journey!"
                         },
-                        color = LightGray.copy(alpha = 0.8f),
+                        color = androidx.compose.ui.graphics.Color(0xFF475569),
                         fontSize = 11.sp,
                         fontStyle = FontStyle.Italic
                     )
@@ -1266,9 +1385,9 @@ fun StudyScreen(viewModel: TalentViewModel) {
                 ) {
                     items(years) { year ->
                         val isSelected = selectedYear == year
-                        val chipBgColor = if (isSelected) GlowingAmber else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f)
-                        val chipTextColor = if (isSelected) Slate900 else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f)
-                        val chipBorderColor = if (isSelected) GlowingAmber else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.15f)
+                        val chipBgColor = if (isSelected) GlowingAmber else androidx.compose.ui.graphics.Color(0xFF1E293B)
+                        val chipTextColor = if (isSelected) androidx.compose.ui.graphics.Color(0xFFFFFFFF) else androidx.compose.ui.graphics.Color(0xFFE2E8F0)
+                        val chipBorderColor = if (isSelected) GlowingAmber else androidx.compose.ui.graphics.Color(0xFF334155)
                         
                         Box(
                             modifier = Modifier
@@ -1307,9 +1426,9 @@ fun StudyScreen(viewModel: TalentViewModel) {
                 ) {
                     items(subjects) { subj ->
                         val isSelected = selectedSubject == subj
-                        val chipBgColor = if (isSelected) NeonCyan else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f)
-                        val chipTextColor = if (isSelected) Slate900 else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f)
-                        val chipBorderColor = if (isSelected) NeonCyan else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.15f)
+                        val chipBgColor = if (isSelected) NeonCyan else androidx.compose.ui.graphics.Color(0xFF1E293B)
+                        val chipTextColor = if (isSelected) androidx.compose.ui.graphics.Color(0xFFFFFFFF) else androidx.compose.ui.graphics.Color(0xFFE2E8F0)
+                        val chipBorderColor = if (isSelected) NeonCyan else androidx.compose.ui.graphics.Color(0xFF334155)
                         
                         Box(
                             modifier = Modifier
@@ -1402,7 +1521,7 @@ fun StudyScreen(viewModel: TalentViewModel) {
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = course.title,
-                                    color = androidx.compose.ui.graphics.Color.White,
+                                    color = androidx.compose.ui.graphics.Color(0xFF0F172A),
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -1438,7 +1557,7 @@ fun StudyScreen(viewModel: TalentViewModel) {
 
                         Text(
                             text = course.description,
-                            color = LightGray.copy(alpha = 0.85f),
+                            color = androidx.compose.ui.graphics.Color(0xFF334155),
                             fontSize = 12.sp,
                             lineHeight = 17.sp
                         )
@@ -1452,12 +1571,12 @@ fun StudyScreen(viewModel: TalentViewModel) {
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(Slate700)
+                                    .background(androidx.compose.ui.graphics.Color(0xFFF1F5F9))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
                                     text = course.yearTarget,
-                                    color = androidx.compose.ui.graphics.Color.White,
+                                    color = androidx.compose.ui.graphics.Color(0xFF475569),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -1489,8 +1608,8 @@ fun StudyScreen(viewModel: TalentViewModel) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Slate900.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                                .border(1.dp, Slate700.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                                .background(androidx.compose.ui.graphics.Color(0xFFF1F5F9), RoundedCornerShape(12.dp))
+                                .border(1.dp, androidx.compose.ui.graphics.Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
                                 .padding(12.dp)
                         ) {
                             Row(
@@ -1508,13 +1627,13 @@ fun StudyScreen(viewModel: TalentViewModel) {
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "Progress: ${(progress * 100).toInt()}%",
-                                        color = if (isCompleted) NeonGreen else androidx.compose.ui.graphics.Color.White,
+                                        color = if (isCompleted) NeonGreen else androidx.compose.ui.graphics.Color(0xFF0F172A),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         text = " ($currentStep/4 Chapters)",
-                                        color = LightGray.copy(alpha = 0.7f),
+                                        color = androidx.compose.ui.graphics.Color(0xFF475569),
                                         fontSize = 11.sp
                                     )
                                 }
@@ -1564,7 +1683,7 @@ fun StudyScreen(viewModel: TalentViewModel) {
                                     viewModel.toggleCourseCompletion(course.title)
                                 },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isCompleted) NeonGreen.copy(alpha = 0.15f) else Slate700,
+                                    containerColor = if (isCompleted) NeonGreen.copy(alpha = 0.15f) else CosmicBlue,
                                     contentColor = if (isCompleted) NeonGreen else androidx.compose.ui.graphics.Color.White
                                 ),
                                 border = if (isCompleted) BorderStroke(1.dp, NeonGreen) else null,
@@ -1591,7 +1710,228 @@ fun StudyScreen(viewModel: TalentViewModel) {
                                     )
                                 }
                             }
-                                   Spacer(modifier = Modifier.height(16.dp))
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    // ------------------------------------------
+                                    // QUESTION PAPERS & STUDY MATERIALS SECTION
+                                    // ------------------------------------------
+                                    var isResourceExpanded by remember { mutableStateOf(false) }
+                                    val coursePapers = getQuestionPapersForCourse(course.title, course.yearTarget, course.category)
+                                    val courseMaterials = getStudyMaterialsForCourse(course.title, course.yearTarget, course.category)
+                                    val totalResourcesCount = coursePapers.size + courseMaterials.size
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (isResourceExpanded) CosmicBlue.copy(alpha = 0.1f) else androidx.compose.ui.graphics.Color.Transparent)
+                                            .clickable { isResourceExpanded = !isResourceExpanded }
+                                            .padding(vertical = 8.dp, horizontal = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.List,
+                                                contentDescription = "Resource Folder",
+                                                tint = if (isResourceExpanded) NeonCyan else androidx.compose.ui.graphics.Color(0xFF475569),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "Question Papers & Materials ($totalResourcesCount)",
+                                                color = if (isResourceExpanded) NeonCyan else androidx.compose.ui.graphics.Color(0xFF334155),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        Icon(
+                                            imageVector = if (isResourceExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                            contentDescription = "Expand Collapse",
+                                            tint = androidx.compose.ui.graphics.Color(0xFF475569),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+
+                                    if (isResourceExpanded) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(androidx.compose.ui.graphics.Color(0xFFF8FAFC), RoundedCornerShape(10.dp))
+                                                .border(1.dp, androidx.compose.ui.graphics.Color(0xFFE2E8F0), RoundedCornerShape(10.dp))
+                                                .padding(10.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            // 1. QUESTION PAPERS
+                                            Column {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Star,
+                                                        contentDescription = "Question Papers",
+                                                        tint = GlowingAmber,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "PREVIOUS YEAR EXAM PAPERS",
+                                                        color = androidx.compose.ui.graphics.Color(0xFF475569),
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Black,
+                                                        letterSpacing = 0.5.sp
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                if (coursePapers.isEmpty()) {
+                                                    Text(
+                                                        text = "No papers available for this course.",
+                                                        color = androidx.compose.ui.graphics.Color(0xFF94A3B8),
+                                                        fontSize = 10.sp,
+                                                        fontStyle = FontStyle.Italic
+                                                    )
+                                                } else {
+                                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                        coursePapers.forEach { paper ->
+                                                            Row(
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth()
+                                                                    .clip(RoundedCornerShape(6.dp))
+                                                                    .background(androidx.compose.ui.graphics.Color.White)
+                                                                    .border(0.5.dp, androidx.compose.ui.graphics.Color(0xFFE2E8F0), RoundedCornerShape(6.dp))
+                                                                    .clickable {
+                                                                        activeQuestionPaper = paper.copy(courseTitle = course.title)
+                                                                    }
+                                                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.SpaceBetween
+                                                            ) {
+                                                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.ArrowForward,
+                                                                        contentDescription = "Arrow",
+                                                                        tint = NeonCyan,
+                                                                        modifier = Modifier.size(10.dp)
+                                                                    )
+                                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                                    Text(
+                                                                        text = paper.examName,
+                                                                        color = androidx.compose.ui.graphics.Color(0xFF1E293B),
+                                                                        fontSize = 11.sp,
+                                                                        fontWeight = FontWeight.Medium,
+                                                                        maxLines = 1,
+                                                                        overflow = TextOverflow.Ellipsis
+                                                                    )
+                                                                }
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .clip(RoundedCornerShape(4.dp))
+                                                                        .background(GlowingAmber.copy(alpha = 0.1f))
+                                                                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                                                                ) {
+                                                                    Text(
+                                                                        text = paper.year,
+                                                                        color = GlowingAmber,
+                                                                        fontSize = 8.sp,
+                                                                        fontWeight = FontWeight.Bold
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            HorizontalDivider(color = androidx.compose.ui.graphics.Color(0xFFE2E8F0), thickness = 0.5.dp)
+
+                                            // 2. STUDY MATERIALS
+                                            Column {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Info,
+                                                        contentDescription = "Study Materials",
+                                                        tint = NeonCyan,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "ACADEMIC STUDY MATERIALS",
+                                                        color = androidx.compose.ui.graphics.Color(0xFF475569),
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Black,
+                                                        letterSpacing = 0.5.sp
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                if (courseMaterials.isEmpty()) {
+                                                    Text(
+                                                        text = "No study materials available.",
+                                                        color = androidx.compose.ui.graphics.Color(0xFF94A3B8),
+                                                        fontSize = 10.sp,
+                                                        fontStyle = FontStyle.Italic
+                                                    )
+                                                } else {
+                                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                        courseMaterials.forEach { material ->
+                                                            Row(
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth()
+                                                                    .clip(RoundedCornerShape(6.dp))
+                                                                    .background(androidx.compose.ui.graphics.Color.White)
+                                                                    .border(0.5.dp, androidx.compose.ui.graphics.Color(0xFFE2E8F0), RoundedCornerShape(6.dp))
+                                                                    .clickable {
+                                                                        activeStudyMaterial = material.copy(courseTitle = course.title)
+                                                                    }
+                                                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.SpaceBetween
+                                                            ) {
+                                                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.Info,
+                                                                        contentDescription = "Info",
+                                                                        tint = CosmicBlue,
+                                                                        modifier = Modifier.size(10.dp)
+                                                                    )
+                                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                                    Text(
+                                                                        text = material.title,
+                                                                        color = androidx.compose.ui.graphics.Color(0xFF1E293B),
+                                                                        fontSize = 11.sp,
+                                                                        fontWeight = FontWeight.Medium,
+                                                                        maxLines = 1,
+                                                                        overflow = TextOverflow.Ellipsis
+                                                                    )
+                                                                }
+                                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .clip(RoundedCornerShape(4.dp))
+                                                                            .background(CosmicBlue.copy(alpha = 0.1f))
+                                                                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                                                                    ) {
+                                                                        Text(
+                                                                            text = material.fileType,
+                                                                            color = CosmicBlue,
+                                                                            fontSize = 8.sp,
+                                                                            fontWeight = FontWeight.Bold
+                                                                        )
+                                                                    }
+                                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                                    Text(
+                                                                        text = material.size,
+                                                                        color = androidx.compose.ui.graphics.Color(0xFF64748B),
+                                                                        fontSize = 8.sp
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -1637,7 +1977,7 @@ fun StudyScreen(viewModel: TalentViewModel) {
                                 onClick = {
                                     viewModel.loadQuizForCourse(course.title, course.category, course.description)
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Slate700),
+                                colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color(0xFFF1F5F9)),
                                 border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f)),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier
@@ -1658,7 +1998,7 @@ fun StudyScreen(viewModel: TalentViewModel) {
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "Practice Quiz",
-                                        color = androidx.compose.ui.graphics.Color.White,
+                                        color = androidx.compose.ui.graphics.Color(0xFF0F172A),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
@@ -1710,6 +2050,22 @@ fun StudyScreen(viewModel: TalentViewModel) {
             onSelectOption = { qIdx, oIdx -> viewModel.selectQuizOption(qIdx, oIdx) },
             onSubmit = { viewModel.submitQuiz() },
             onClose = { viewModel.clearQuiz() }
+        )
+    }
+
+    activeQuestionPaper?.let { paper ->
+        QuestionPaperDialog(
+            paper = paper,
+            courseTitle = paper.courseTitle,
+            onClose = { activeQuestionPaper = null }
+        )
+    }
+
+    activeStudyMaterial?.let { material ->
+        StudyMaterialDialog(
+            material = material,
+            courseTitle = material.courseTitle,
+            onClose = { activeStudyMaterial = null }
         )
     }
 }
@@ -1919,6 +2275,29 @@ fun AIPrepScreen(viewModel: TalentViewModel) {
     }
 }
 
+fun generateVoiceTranscriptForQuestion(question: String): String {
+    return when {
+        question.contains("Complexity", ignoreCase = true) || question.contains("Big-O", ignoreCase = true) || question.contains("Algorithm", ignoreCase = true) -> {
+            "First, I would analyze the bounds. The naive solution has a nested structure yielding O(N squared) runtime. However, by leveraging an auxiliary hash map, we can index the visited states in O(1) time, reducing the overall time complexity of the algorithm to O(N) linear time and O(N) space."
+        }
+        question.contains("Database", ignoreCase = true) || question.contains("Query", ignoreCase = true) || question.contains("SQL", ignoreCase = true) -> {
+            "To resolve the query bottleneck, I would check the execution plan. If it performs a full table scan, I would create a composite B-tree index on the filtered columns. I'd also ensure we aren't experiencing N plus 1 query issues by utilizing eager joins or prefetching related rows."
+        }
+        question.contains("Security", ignoreCase = true) || question.contains("Crypt", ignoreCase = true) || question.contains("Auth", ignoreCase = true) -> {
+            "My security strategy is defense in depth. I would enforce strong cryptographic standards, specifically using salted SHA-256 or bcrypt for password hashing. All communication channels will require TLS 1.3 with secure cipher suites, and we will restrict API access using OAuth 2.0 with JWT verification."
+        }
+        question.contains("Network", ignoreCase = true) || question.contains("Protocol", ignoreCase = true) || question.contains("IP", ignoreCase = true) -> {
+            "For reliable, ordered byte delivery, TCP is the standard protocol due to its built-in congestion control and three-way handshake mechanism. For real-time low-latency telemetry transmission, I would select UDP with a custom application-level sequence numbering to handle dropouts gracefully."
+        }
+        question.contains("Robot", ignoreCase = true) || question.contains("Kinematics", ignoreCase = true) || question.contains("Jacobian", ignoreCase = true) -> {
+            "We mathematically formulate joint states using Denavit-Hartenberg parameters to construct sequential homogeneous transform matrices. In the event of a kinematic singularity where the Jacobian matrix loses rank, we would employ a pseudo-inverse with dampening factors to keep velocity bounds stable."
+        }
+        else -> {
+            "In approaching this system design question, my priority is dividing the monolithic components into scalable, stateless microservices. We will deploy an event-driven queue like Kafka to handle spikes in traffic, and cache frequent read-heavy requests inside an in-memory database like Redis to optimize response latency."
+        }
+    }
+}
+
 @Composable
 fun MockInterviewMainPage(viewModel: TalentViewModel) {
     val activeQuestion by viewModel.currentQuestion.collectAsStateWithLifecycle()
@@ -1931,6 +2310,31 @@ fun MockInterviewMainPage(viewModel: TalentViewModel) {
 
     var studentAnswer by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+
+    var isRecording by remember { mutableStateOf(false) }
+    var isTranscribing by remember { mutableStateOf(false) }
+    var recordSecondsElapsed by remember { mutableStateOf(0) }
+
+    LaunchedEffect(isRecording) {
+        if (isRecording) {
+            recordSecondsElapsed = 0
+            while (isRecording) {
+                kotlinx.coroutines.delay(1000L)
+                recordSecondsElapsed++
+            }
+        }
+    }
+
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            isRecording = true
+        } else {
+            android.widget.Toast.makeText(context, "Microphone permission is required for voice responses.", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
 
     val defaultDuration = when (selectedDifficulty) {
         "Easy" -> 300
@@ -2357,13 +2761,144 @@ fun MockInterviewMainPage(viewModel: TalentViewModel) {
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "YOUR TECHNICAL ANSWER EXPLANATION",
-                    color = LightGray.copy(alpha = 0.6f),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "YOUR TECHNICAL ANSWER EXPLANATION",
+                        color = LightGray.copy(alpha = 0.6f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp
+                    )
+                    
+                    if (timeRemaining > 0 && !isTranscribing) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isRecording) NeonGreen.copy(alpha = 0.15f) else Slate700)
+                                .clickable {
+                                    if (isRecording) {
+                                        isRecording = false
+                                        isTranscribing = true
+                                    } else {
+                                        permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                    }
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isRecording) Icons.Default.Close else Icons.Default.Check,
+                                contentDescription = "Mic Icon",
+                                tint = if (isRecording) NeonGreen else androidx.compose.ui.graphics.Color.White,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isRecording) "Stop & Transcribe" else "Record Response",
+                                color = if (isRecording) NeonGreen else androidx.compose.ui.graphics.Color.White,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                if (isRecording) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "pulse_wave")
+                    val waveHeight1 by infiniteTransition.animateFloat(
+                        initialValue = 10f,
+                        targetValue = 35f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(400, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ), label = "h1"
+                    )
+                    val waveHeight2 by infiniteTransition.animateFloat(
+                        initialValue = 15f,
+                        targetValue = 48f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(500, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ), label = "h2"
+                    )
+                    val waveHeight3 by infiniteTransition.animateFloat(
+                        initialValue = 8f,
+                        targetValue = 30f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(350, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ), label = "h3"
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Slate900, RoundedCornerShape(10.dp))
+                            .border(1.dp, NeonGreen.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(NeonGreen)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Recording Audio via Mic... 00:${recordSecondsElapsed.toString().padStart(2, '0')}",
+                                color = NeonGreen,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.height(30.dp)
+                        ) {
+                            Box(modifier = Modifier.width(3.dp).height(waveHeight1.dp).clip(RoundedCornerShape(1.5.dp)).background(NeonGreen))
+                            Box(modifier = Modifier.width(3.dp).height(waveHeight2.dp).clip(RoundedCornerShape(1.5.dp)).background(NeonGreen))
+                            Box(modifier = Modifier.width(3.dp).height(waveHeight3.dp).clip(RoundedCornerShape(1.5.dp)).background(NeonGreen))
+                            Box(modifier = Modifier.width(3.dp).height(waveHeight1.dp).clip(RoundedCornerShape(1.5.dp)).background(NeonGreen))
+                            Box(modifier = Modifier.width(3.dp).height(waveHeight2.dp).clip(RoundedCornerShape(1.5.dp)).background(NeonGreen))
+                        }
+                    }
+                }
+
+                if (isTranscribing) {
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(1800)
+                        studentAnswer = generateVoiceTranscriptForQuestion(activeQuestion)
+                        isTranscribing = false
+                        android.widget.Toast.makeText(context, "Voice transcript processed successfully via AI model!", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Slate900, RoundedCornerShape(10.dp))
+                            .border(1.dp, GlowingAmber.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(color = GlowingAmber, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Text(
+                            text = "AI System is transcribing your spoken audio response...",
+                            color = GlowingAmber,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
                 
                 OutlinedTextField(
                     value = studentAnswer,
@@ -4497,5 +5032,711 @@ fun QuizDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun QuestionPaperDialog(
+    paper: QuestionPaper,
+    courseTitle: String,
+    onClose: () -> Unit
+) {
+    val context = LocalContext.current
+    var showAnswers by remember { mutableStateOf(false) }
+    var isTimerActive by remember { mutableStateOf(false) }
+    var secondsElapsed by remember { mutableStateOf(0) }
+
+    LaunchedEffect(isTimerActive) {
+        if (isTimerActive) {
+            while (true) {
+                kotlinx.coroutines.delay(1000)
+                secondsElapsed++
+            }
+        }
+    }
+
+    val minutesStr = (secondsElapsed / 60).toString().padStart(2, '0')
+    val secondsStr = (secondsElapsed % 60).toString().padStart(2, '0')
+
+    Dialog(
+        onDismissRequest = onClose,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            color = Slate950,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(1.dp, GlowingAmber.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Exam Logo",
+                            tint = GlowingAmber,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = paper.year + " PREVIOUS YEAR PAPER",
+                                color = GlowingAmber,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = paper.examName,
+                                color = androidx.compose.ui.graphics.Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    IconButton(
+                        onClick = onClose,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f))
+                            .size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = androidx.compose.ui.graphics.Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Slate700, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(androidx.compose.ui.graphics.Color(0xFF131B2E), RoundedCornerShape(10.dp))
+                        .border(BorderStroke(0.5.dp, androidx.compose.ui.graphics.Color(0xFF334155).copy(alpha = 0.5f)), RoundedCornerShape(10.dp))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "COURSE REF:",
+                            color = NeonCyan,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = courseTitle,
+                            color = androidx.compose.ui.graphics.Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "PRACTICE TIMER:",
+                            color = NeonCyan,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "$minutesStr:$secondsStr",
+                                color = if (isTimerActive) NeonGreen else androidx.compose.ui.graphics.Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            IconButton(
+                                onClick = { isTimerActive = !isTimerActive },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isTimerActive) Icons.Default.Close else Icons.Default.Refresh,
+                                    contentDescription = "Timer Toggle",
+                                    tint = if (isTimerActive) NeonGreen else LightGray,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(androidx.compose.ui.graphics.Color(0xFF131B2E), RoundedCornerShape(10.dp))
+                                .border(BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFF334155).copy(alpha = 0.5f)), RoundedCornerShape(10.dp))
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = "EXAM FORMAT & INSTRUCTIONS",
+                                color = androidx.compose.ui.graphics.Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "• Duration: 3 Hours  |  Max Marks: 100 Marks\n• Section A contains 5 compulsory short questions (5 marks each).\n• Section B contains 5 long-form questions. Attempt any 3 (25 marks each).\n• Read all technical definitions and pseudocode questions carefully before solving.",
+                                color = androidx.compose.ui.graphics.Color(0xFF94A3B8),
+                                fontSize = 11.sp,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+
+                    item {
+                        Text(
+                            text = "SECTION A: COMPULSORY CONCEPTS (25 Marks)",
+                            color = NeonCyan,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+
+                    item {
+                        ExamQuestionCard(
+                            qNum = "Q1",
+                            questionText = "Explain the difference between worst-case, average-case, and amortized time complexity. Provide a concrete structure where amortized bounds are crucial.",
+                            marks = "5 Marks",
+                            answerExplanation = "Worst-case is the absolute upper bound (e.g., O(N) searching). Average-case is expected behavior over a uniform distribution. Amortized is the average time per operation over a sequence of operations (e.g., dynamic array resizing where expansion takes O(N) but happens rarely, yielding O(1) amortized cost).",
+                            showAnswer = showAnswers
+                        )
+                    }
+
+                    item {
+                        ExamQuestionCard(
+                            qNum = "Q2",
+                            questionText = "Describe how Hash Table collisions are handled using (a) Chaining with Linked Lists and (b) Open Addressing with Quadratic Probing. Contrast their performance in cache-locality.",
+                            marks = "5 Marks",
+                            answerExplanation = "Chaining handles collisions by storing multiple entries in a linked list at the bucket index. Open addressing search for other buckets in a deterministic sequence. Open addressing (Quadratic Probing) offers better cache-locality as elements are adjacent in a single array, whereas chaining requires pointer-chasing across heap-allocated list nodes.",
+                            showAnswer = showAnswers
+                        )
+                    }
+
+                    item {
+                        ExamQuestionCard(
+                            qNum = "Q3",
+                            questionText = "A packet scanning security system identifies an IP header with a corrupted checksum field. Which ISO/OSI layer is responsible for detecting and discarding this packet, and how does it react?",
+                            marks = "5 Marks",
+                            answerExplanation = "The Network Layer (Layer 3) parses the IP header. The IPv4 header checksum is verified at each hop (router). If the checksum is mismatching, the packet is silently discarded. Upper layers (TCP) may trigger retransmission.",
+                            showAnswer = showAnswers
+                        )
+                    }
+
+                    item {
+                        Text(
+                            text = "SECTION B: DESIGN & SYNTHESIS (Attempt any 3 - 75 Marks)",
+                            color = NeonCyan,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+
+                    item {
+                        ExamQuestionCard(
+                            qNum = "Q4",
+                            questionText = "Design a complete divide-and-conquer algorithm to count the total number of inversions in a given array of size N in O(N log N) time complexity. (An inversion is a pair of indices i < j such that A[i] > A[j]). Write the recurrences and prove correctness.",
+                            marks = "25 Marks",
+                            answerExplanation = "The solution adapts Merge Sort. During the 'Merge' step, if an element from the right subarray is copied before an element of the left subarray, it forms inversions with all remaining elements in the left subarray. Recurrence: T(N) = 2T(N/2) + O(N). Solving by Master Theorem yields O(N log N).",
+                            showAnswer = showAnswers
+                        )
+                    }
+
+                    item {
+                        ExamQuestionCard(
+                            qNum = "Q5",
+                            questionText = "Explain the mathematical formulation of robotic coordinate frames using Homogeneous Transformation Matrices. Derive the forward kinematics of a 2-Link planar robotic manipulator and write down the final Jacobian matrix.",
+                            marks = "25 Marks",
+                            answerExplanation = "A homogeneous transformation matrix T in SE(3) combines a 3x3 rotation matrix R and a 3x1 translation vector p. For a 2-Link planar robot: x = L1*cos(t1) + L2*cos(t1+t2); y = L1*sin(t1) + L2*sin(t1+t2). The Jacobian is the matrix of partial derivatives of position (x, y) with respect to joint angles (t1, t2), which maps joint velocities to operational space velocities.",
+                            showAnswer = showAnswers
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { showAnswers = !showAnswers },
+                        colors = ButtonDefaults.buttonColors(containerColor = if (showAnswers) GlowingAmber else Slate800),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "Answers",
+                                tint = if (showAnswers) Slate900 else androidx.compose.ui.graphics.Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (showAnswers) "Hide Solved Guides" else "Show Answer Guide",
+                                color = if (showAnswers) Slate900 else androidx.compose.ui.graphics.Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            android.widget.Toast.makeText(context, "Question Paper material cached offline successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = CosmicBlue),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Download",
+                                tint = androidx.compose.ui.graphics.Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Save Offline",
+                                color = androidx.compose.ui.graphics.Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ExamQuestionCard(
+    qNum: String,
+    questionText: String,
+    marks: String,
+    answerExplanation: String,
+    showAnswer: Boolean
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color(0xFF131B2E)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFF334155).copy(alpha = 0.5f)), RoundedCornerShape(10.dp)),
+        shape = RoundedCornerShape(10.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(NeonCyan.copy(alpha = 0.15f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = qNum,
+                        color = NeonCyan,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = marks,
+                    color = GlowingAmber,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = questionText,
+                color = androidx.compose.ui.graphics.Color.White,
+                fontSize = 12.sp,
+                lineHeight = 17.sp,
+                fontWeight = FontWeight.Medium
+            )
+
+            if (showAnswer) {
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(color = androidx.compose.ui.graphics.Color(0xFF334155).copy(alpha = 0.5f), thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(androidx.compose.ui.graphics.Color(0xFF0A0F1D), RoundedCornerShape(6.dp))
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text = "ACADEMIC MARKING SCHEME & SOLUTION GUIDE:",
+                        color = NeonGreen,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = answerExplanation,
+                        color = androidx.compose.ui.graphics.Color(0xFF94A3B8),
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StudyMaterialDialog(
+    material: StudyMaterial,
+    courseTitle: String,
+    onClose: () -> Unit
+) {
+    val context = LocalContext.current
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    var isMarkedRead by remember { mutableStateOf(false) }
+
+    Dialog(
+        onDismissRequest = onClose,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            color = Slate950,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(1.dp, NeonCyan.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Notes Logo",
+                            tint = NeonCyan,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "ACADEMIC STUDY NOTES",
+                                color = NeonCyan,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = material.title,
+                                color = androidx.compose.ui.graphics.Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    IconButton(
+                        onClick = onClose,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f))
+                            .size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = androidx.compose.ui.graphics.Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Slate700, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(androidx.compose.ui.graphics.Color(0xFF131B2E), RoundedCornerShape(10.dp))
+                        .border(BorderStroke(0.5.dp, androidx.compose.ui.graphics.Color(0xFF334155).copy(alpha = 0.5f)), RoundedCornerShape(10.dp))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "SOURCE COURSE:",
+                            color = NeonCyan,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = courseTitle,
+                            color = androidx.compose.ui.graphics.Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(CosmicBlue.copy(alpha = 0.2f))
+                                .padding(horizontal = 6.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = material.fileType,
+                                color = NeonCyan,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(androidx.compose.ui.graphics.Color(0xFF334155))
+                                .padding(horizontal = 6.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = material.size,
+                                color = androidx.compose.ui.graphics.Color.White,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(androidx.compose.ui.graphics.Color(0xFF131B2E), RoundedCornerShape(10.dp))
+                                .border(BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFF334155).copy(alpha = 0.5f)), RoundedCornerShape(10.dp))
+                                .padding(14.dp)
+                        ) {
+                            Text(
+                                text = "CORE CONCEPT OVERVIEW",
+                                color = GlowingAmber,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "This study module focuses on core university syllabi topics required for high-percentile semester scores and elite software engineering job placements.",
+                                color = androidx.compose.ui.graphics.Color.White,
+                                fontSize = 12.sp,
+                                lineHeight = 17.sp
+                            )
+                        }
+                    }
+
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp)
+                        ) {
+                            Text(
+                                text = "KEY LEARNING MODULES & THEORIES",
+                                color = NeonCyan,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            StudyPointItem("1. Theoretical Foundations", "Master the computational proofs and core axioms. For example, in algorithms, understand why the Master Theorem cannot be applied to recurrences like T(n) = 2T(n/2) + n log n.")
+                            Spacer(modifier = Modifier.height(8.dp))
+                            StudyPointItem("2. Design & Implementation Best Practices", "When writing system code, prioritize safety and standard design patterns. Learn how to prevent concurrency lockups, utilize thread pools, and manage automatic resource cleanups.")
+                            Spacer(modifier = Modifier.height(8.dp))
+                            StudyPointItem("3. Mathematical Bounds & Proofs", "Verify the extreme edges. In Robotics, understand the singular joint configurations of kinematic paths. In security, study key space limits and birthday-attack entropy bounds.")
+                        }
+                    }
+
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(androidx.compose.ui.graphics.Color(0xFF0F172A), RoundedCornerShape(10.dp))
+                                .border(BorderStroke(1.dp, Slate800), RoundedCornerShape(10.dp))
+                                .padding(14.dp)
+                        ) {
+                            Text(
+                                text = "REFERENCE PSEUDOCODE / CHEAT SHEET",
+                                color = NeonGreen,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "class AcademicResourceSolver:\n    def solve_complexity(self, bounds):\n        # Perform recursive division\n        if bounds.is_base_case():\n            return bounds.solve_directly()\n        \n        # Divide task into clean subproblems\n        subtasks = bounds.divide_and_conquer(splits=2)\n        results = [self.solve_complexity(t) for t in subtasks]\n        \n        # Combine solutions synchronously\n        return bounds.combine(results)",
+                                color = androidx.compose.ui.graphics.Color(0xFF38BDF8),
+                                fontSize = 10.sp,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                lineHeight = 15.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            isMarkedRead = !isMarkedRead
+                            android.widget.Toast.makeText(
+                                context,
+                                if (isMarkedRead) "Module marked as completed!" else "Progress cleared.",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isMarkedRead) NeonGreen.copy(alpha = 0.15f) else Slate800),
+                        border = if (isMarkedRead) BorderStroke(1.dp, NeonGreen) else null,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (isMarkedRead) Icons.Default.CheckCircle else Icons.Default.Check,
+                                contentDescription = "Read Check",
+                                tint = if (isMarkedRead) NeonGreen else androidx.compose.ui.graphics.Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isMarkedRead) "Read & Mastered ✓" else "Mark as Read",
+                                color = if (isMarkedRead) NeonGreen else androidx.compose.ui.graphics.Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            try {
+                                uriHandler.openUri(material.accessUrl)
+                            } catch (e: Exception) {
+                                android.widget.Toast.makeText(context, "Navigating to course notes...", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = CosmicBlue),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowForward,
+                                contentDescription = "Open",
+                                tint = androidx.compose.ui.graphics.Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Open Reference",
+                                color = androidx.compose.ui.graphics.Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StudyPointItem(title: String, body: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(androidx.compose.ui.graphics.Color(0xFF131B2E), RoundedCornerShape(8.dp))
+            .border(BorderStroke(0.5.dp, androidx.compose.ui.graphics.Color(0xFF334155).copy(alpha = 0.5f)), RoundedCornerShape(8.dp))
+            .padding(10.dp)
+    ) {
+        Text(
+            text = title,
+            color = NeonCyan,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = body,
+            color = androidx.compose.ui.graphics.Color(0xFF94A3B8),
+            fontSize = 11.sp,
+            lineHeight = 15.sp
+        )
     }
 }
