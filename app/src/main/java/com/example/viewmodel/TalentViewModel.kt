@@ -72,16 +72,16 @@ class TalentViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     val userProfile: StateFlow<UserProfile?> = repository.userProfile
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val roadmapItems: StateFlow<List<LearningRoadmapItem>> = repository.roadmapItems
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val interviewLogs: StateFlow<List<InterviewLog>> = repository.interviewLogs
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val mentorMessages: StateFlow<List<MentorMessage>> = repository.mentorMessages
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // UI Local States
     private val _isAssessing = MutableStateFlow(false)
@@ -179,6 +179,16 @@ class TalentViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleRoadmapItem(id: Int, isCompleted: Boolean) {
         viewModelScope.launch {
             repository.updateRoadmapItemStatus(id, isCompleted)
+        }
+    }
+
+    fun forceSeedDubaiCSRoadmap() {
+        viewModelScope.launch {
+            try {
+                repository.seedDubaiCSRoadmap()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -667,6 +677,17 @@ class TalentViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
         fetchLiveFeeds()
+
+        // Auto-seed BITS Dubai CS Career Roadmap if empty on startup
+        viewModelScope.launch {
+            try {
+                if (repository.getRoadmapCount() == 0) {
+                    repository.seedDubaiCSRoadmap()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     // Quiz state and interaction

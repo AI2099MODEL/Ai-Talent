@@ -2087,20 +2087,49 @@ fun RoadmapScreen(viewModel: TalentViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Column {
-                Text(
-                    text = "Your Talent Roadmap",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Track your learning items dynamically. Complete these modules to raise your placement readiness index.",
-                    color = LightGray.copy(alpha = 0.6f),
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Your Talent Roadmap",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Track your learning items dynamically. Complete these modules to raise your placement readiness index.",
+                        color = LightGray.copy(alpha = 0.6f),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = { viewModel.forceSeedDubaiCSRoadmap() },
+                    colors = ButtonDefaults.buttonColors(containerColor = GlowingAmber.copy(alpha = 0.15f)),
+                    border = BorderStroke(1.dp, GlowingAmber),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.testTag("load_curated_roadmap_btn")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Reload CS Roadmap",
+                        tint = GlowingAmber,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Load CS Roadmap",
+                        color = GlowingAmber,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
@@ -2177,6 +2206,27 @@ fun RoadmapScreen(viewModel: TalentViewModel) {
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 32.dp)
                     )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = { viewModel.forceSeedDubaiCSRoadmap() },
+                        colors = ButtonDefaults.buttonColors(containerColor = GlowingAmber),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.testTag("empty_state_load_roadmap_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Load BITS Dubai CS Career Roadmap",
+                            tint = Slate900,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Load BITS CS Career Roadmap",
+                            color = Slate900,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }

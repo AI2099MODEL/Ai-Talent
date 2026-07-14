@@ -10,10 +10,21 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
+import kotlinx.coroutines.flow.onStart
+
 class TalentRepository(private val db: AppDatabase) {
 
     val userProfile: Flow<UserProfile?> = db.userDao().getUserProfile()
     val roadmapItems: Flow<List<LearningRoadmapItem>> = db.learningDao().getAllRoadmapItems()
+        .onStart {
+            try {
+                if (db.learningDao().getCount() == 0) {
+                    seedDubaiCSRoadmap()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     val interviewLogs: Flow<List<InterviewLog>> = db.interviewDao().getAllInterviewLogs()
     val mentorMessages: Flow<List<MentorMessage>> = db.mentorDao().getAllMessages()
 
@@ -22,6 +33,65 @@ class TalentRepository(private val db: AppDatabase) {
 
     suspend fun saveUserProfile(profile: UserProfile) {
         db.userDao().insertOrUpdateProfile(profile)
+    }
+
+    suspend fun getRoadmapCount(): Int {
+        return db.learningDao().getCount()
+    }
+
+    suspend fun seedDubaiCSRoadmap() = withContext(Dispatchers.IO) {
+        val dubaiCSRoadmap = listOf(
+            LearningRoadmapItem(
+                title = "CS Foundations & Systems (Harvard CS50)",
+                description = "Learn core Computer Science concepts (Memory, C, Python, SQL, and Web Dev). Search 'CS50 Introduction to Computer Science' on YouTube (free course) or follow freeCodeCamp's 20-hour companion courses to build deep logical thinking.",
+                track = "Software Engineer",
+                estimatedHours = 40
+            ),
+            LearningRoadmapItem(
+                title = "Data Structures & Algorithms (Abdul Bari & NeetCode)",
+                description = "Master Arrays, Linked Lists, Stacks, Queues, Trees, Graphs, and Dynamic Programming. Follow 'Algorithms' by Abdul Bari on YouTube for conceptual depth, and solve 'NeetCode 150' on YouTube/LeetCode for technical placement readiness.",
+                track = "Software Engineer",
+                estimatedHours = 60
+            ),
+            LearningRoadmapItem(
+                title = "OOP & Low-Level System Design (LLD)",
+                description = "Learn SOLID design principles, Object-Oriented Design, and creational, structural, and behavioral design patterns. Watch Christopher Okhravi's Design Patterns playlist or the freeCodeCamp Low-Level Design course on YouTube.",
+                track = "Software Engineer",
+                estimatedHours = 25
+            ),
+            LearningRoadmapItem(
+                title = "Modern App Development (Android Developers & Traversy Media)",
+                description = "Build high-performance, beautiful mobile UIs using Jetpack Compose (Kotlin) or scalable Web Apps with React/Next.js. Learn modern state management and secure API consumption. Check 'Android Developers' official channel and Traversy Media's crash courses on YouTube.",
+                track = "Fullstack Developer",
+                estimatedHours = 50
+            ),
+            LearningRoadmapItem(
+                title = "High-Performance Databases & SQL (Hussein Nasser)",
+                description = "Understand database internals, indexing (B-Trees, LSM Trees), query optimization, ACID transactions, and horizontal scaling. Follow Hussein Nasser's 'Database Engineering' playlist on YouTube.",
+                track = "Database Architect",
+                estimatedHours = 30
+            ),
+            LearningRoadmapItem(
+                title = "High-Level System Design (ByteByteGo & Gaurav Sen)",
+                description = "Master architectural scalability: load balancers, caching layers (Redis), message queues (Kafka), and database partitioning. Watch Gaurav Sen's System Design series and ByteByteGo on YouTube. Highly valued in Dubai MNCs like Careem, Noon, and Talabat.",
+                track = "System Architect",
+                estimatedHours = 35
+            ),
+            LearningRoadmapItem(
+                title = "Cloud & DevOps Fundamentals (TechWorld with Nana)",
+                description = "Learn to package and deploy applications in containers using Docker & Kubernetes. Build automated CI/CD pipelines. Follow TechWorld with Nana's free Docker and Kubernetes tutorials and freeCodeCamp's AWS Certified Cloud Practitioner prep on YouTube.",
+                track = "DevOps Engineer",
+                estimatedHours = 30
+            ),
+            LearningRoadmapItem(
+                title = "AI & Machine Learning Foundations (Andrej Karpathy & Andrew Ng)",
+                description = "Build neural networks from scratch and understand regression, classification, backpropagation, and deep learning. Watch Andrej Karpathy's 'Neural Networks: Zero to Hero' on YouTube and Andrew Ng's Stanford Machine Learning lectures.",
+                track = "AI/ML Engineer",
+                estimatedHours = 45
+            )
+        )
+        db.learningDao().clearRoadmap()
+        db.learningDao().insertRoadmapItems(dubaiCSRoadmap)
     }
 
     suspend fun updateRoadmapItemStatus(id: Int, isCompleted: Boolean) {

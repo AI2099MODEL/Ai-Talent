@@ -24,6 +24,9 @@ interface LearningDao {
     @Query("UPDATE learning_roadmap SET isCompleted = :isCompleted WHERE id = :id")
     suspend fun updateCompletionStatus(id: Int, isCompleted: Boolean)
 
+    @Query("SELECT COUNT(*) FROM learning_roadmap")
+    suspend fun getCount(): Int
+
     @Query("DELETE FROM learning_roadmap")
     suspend fun clearRoadmap()
 }
