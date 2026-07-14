@@ -496,7 +496,7 @@ class TalentRepository(private val db: AppDatabase) {
                     imageConfig = ImageSizeConfig(aspectRatio = "1:1", imageSize = size)
                 )
             )
-            val response = apiService.generateImage("gemini-3-pro-image-preview", apiKey, request)
+            val response = apiService.generateImage("gemini-2.5-flash-image", apiKey, request)
             response.candidates?.firstOrNull()?.content?.parts?.firstOrNull { it.inlineData != null }?.inlineData?.data
         } catch (e: Exception) {
             e.printStackTrace()

@@ -86,6 +86,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainNavigationContainer(modifier: Modifier = Modifier) {
     var selectedTab by remember { mutableStateOf(0) }
+    val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val app = context.applicationContext as Application
     val viewModel: TalentViewModel = viewModel(
@@ -126,7 +127,20 @@ fun MainNavigationContainer(modifier: Modifier = Modifier) {
                         onNavigateToProfile = { selectedTab = 6 },
                         onNavigateToEvents = { selectedTab = 5 }
                     )
-                    1 -> StudyScreen(viewModel)
+                    1 -> StudyScreen(viewModel, onOpenUrl = { url ->
+                        try {
+                            uriHandler.openUri(url)
+                        } catch (e: Exception) {
+                            try {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
+                                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            } catch (ex: Exception) {
+                                android.widget.Toast.makeText(context, "No web browser found to open link.", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    })
                     2 -> RoadmapScreen(viewModel)
                     3 -> AIPrepScreen(viewModel)
                     4 -> AIImageScreen(viewModel)
@@ -238,6 +252,8 @@ fun MainNavigationContainer(modifier: Modifier = Modifier) {
                 )
             )
         }
+
+
     }
 }
 
@@ -511,7 +527,8 @@ fun DashboardScreen(
                     val actions = listOf(
                         Triple("AI Mock Interview", "Practice real interview questions with real-time AI scoring & grading.", 3),
                         Triple("Curated Courses", "Master key CS topics from Software Eng to Cloud & DevOps.", 1),
-                        Triple("Learning Roadmap", "Track milestones to level up your placement readiness.", 2)
+                        Triple("Learning Roadmap", "Track milestones to level up your placement readiness.", 2),
+                        Triple("AI Credentials Studio", "Generate custom digital talent development credentials and merit badges.", 4)
                     )
                     
                     actions.forEach { (title, subtitle, tabIdx) ->
@@ -538,6 +555,7 @@ fun DashboardScreen(
                                         imageVector = when (tabIdx) {
                                             3 -> Icons.Default.Star
                                             1 -> Icons.Default.Info
+                                            4 -> Icons.Default.CheckCircle
                                             else -> Icons.Default.List
                                         },
                                         contentDescription = null,
@@ -1239,9 +1257,8 @@ val studyCoursesList = listOf(
 )
 
 @Composable
-fun StudyScreen(viewModel: TalentViewModel) {
+fun StudyScreen(viewModel: TalentViewModel, onOpenUrl: (String) -> Unit) {
     val context = LocalContext.current
-    val uriHandler = LocalUriHandler.current
 
     val completedCourses by viewModel.completedCourses.collectAsStateWithLifecycle()
     val courseProgress by viewModel.courseProgress.collectAsStateWithLifecycle()
@@ -1939,11 +1956,7 @@ fun StudyScreen(viewModel: TalentViewModel) {
                         ) {
                             Button(
                                 onClick = {
-                                    try {
-                                        uriHandler.openUri(course.officialUrl)
-                                    } catch (e: Exception) {
-                                        android.widget.Toast.makeText(context, "Navigating to course material...", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
+                                    onOpenUrl(course.officialUrl)
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = if (course.hasFreeCertificate) GlowingAmber else CosmicBlue),
                                 shape = RoundedCornerShape(10.dp),
@@ -2065,7 +2078,8 @@ fun StudyScreen(viewModel: TalentViewModel) {
         StudyMaterialDialog(
             material = material,
             courseTitle = material.courseTitle,
-            onClose = { activeStudyMaterial = null }
+            onClose = { activeStudyMaterial = null },
+            onOpenUrl = onOpenUrl
         )
     }
 }
@@ -3989,7 +4003,7 @@ fun AIImageScreen(viewModel: TalentViewModel) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Generate custom digital talent development credentials, portfolio graphics, and merit badges powered by gemini-3-pro-image-preview.",
+                        text = "Generate custom digital talent development credentials, portfolio graphics, and merit badges powered by gemini-2.5-flash-image (Free Tier).",
                         color = LightGray.copy(alpha = 0.8f),
                         fontSize = 12.sp,
                         lineHeight = 16.sp
@@ -4163,7 +4177,7 @@ fun AIImageScreen(viewModel: TalentViewModel) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Generate with Gemini Imagen 3",
+                        text = "Generate with Gemini Flash Image",
                         color = Slate900,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 14.sp
@@ -6039,10 +6053,10 @@ fun ExamQuestionCard(
 fun StudyMaterialDialog(
     material: StudyMaterial,
     courseTitle: String,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onOpenUrl: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     var isMarkedRead by remember { mutableStateOf(false) }
 
     Dialog(
@@ -6290,11 +6304,7 @@ fun StudyMaterialDialog(
 
                     Button(
                         onClick = {
-                            try {
-                                uriHandler.openUri(material.accessUrl)
-                            } catch (e: Exception) {
-                                android.widget.Toast.makeText(context, "Navigating to course notes...", android.widget.Toast.LENGTH_SHORT).show()
-                            }
+                            onOpenUrl(material.accessUrl)
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = CosmicBlue),
                         shape = RoundedCornerShape(10.dp),
