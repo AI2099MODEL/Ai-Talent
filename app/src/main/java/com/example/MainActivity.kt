@@ -2075,10 +2075,21 @@ fun StudyScreen(viewModel: TalentViewModel) {
 // ==========================================
 @Composable
 fun RoadmapScreen(viewModel: TalentViewModel) {
-    val items by viewModel.roadmapItems.collectAsStateWithLifecycle()
+    var selectedSubTab by remember { mutableIntStateOf(0) }
+    val checkedItems by viewModel.checkedRoadmapItems.collectAsStateWithLifecycle()
 
-    val completedCount = items.count { it.isCompleted }
-    val totalCount = items.size
+    // Define all milestones/items we want to track progress for
+    val allTrackableItems = listOf(
+        "sem_3_4", "sem_4_5", "sem_5_6", "sem_6_7", "sem_7_8",
+        "study_dsa_striver", "study_dsa_leetcode", "study_dsa_cs50",
+        "study_ml_andrew_ng", "study_ml_fast_ai", "study_ml_deeplearning", "study_ml_pytorch",
+        "study_core_nptel", "study_applied_kaggle", "study_applied_github", "study_applied_deploy",
+        "timeline_now_dec", "timeline_jan", "timeline_jan_apr", "timeline_summer_sem4", "timeline_ongoing"
+    )
+
+    val completedCount = allTrackableItems.count { checkedItems.contains(it) }
+    val totalCount = allTrackableItems.size
+    val progressPercent = if (totalCount > 0) (completedCount.toFloat() / totalCount * 100).toInt() else 0
 
     LazyColumn(
         modifier = Modifier
@@ -2086,146 +2097,682 @@ fun RoadmapScreen(viewModel: TalentViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // 1. Personalized Student Profile Header Card
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Slate800),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(BorderStroke(1.dp, Slate700.copy(alpha = 0.5f)), RoundedCornerShape(20.dp)),
+                shape = RoundedCornerShape(20.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Your Talent Roadmap",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Track your learning items dynamically. Complete these modules to raise your placement readiness index.",
-                        color = LightGray.copy(alpha = 0.6f),
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = { viewModel.forceSeedDubaiCSRoadmap() },
-                    colors = ButtonDefaults.buttonColors(containerColor = GlowingAmber.copy(alpha = 0.15f)),
-                    border = BorderStroke(1.dp, GlowingAmber),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.testTag("load_curated_roadmap_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Reload CS Roadmap",
-                        tint = GlowingAmber,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Load CS Roadmap",
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "ANANYA JAIN",
+                                color = PureWhite,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "B.E. Computer Science Engineering",
+                                color = GlowingAmber,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = "Location",
+                                    tint = Slate600,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "BITS Pilani, Dubai Campus  |  Semester 3 of 8",
+                                    color = Slate600,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        
+                        // Custom circular progress indicator or score badge
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(60.dp)
+                                .background(GlowingAmber.copy(alpha = 0.1f), CircleShape)
+                                .border(BorderStroke(2.dp, GlowingAmber.copy(alpha = 0.3f)), CircleShape)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "$progressPercent%",
+                                    color = GlowingAmber,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Text(
+                                    text = "Done",
+                                    color = Slate600,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Progress Bar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Roadmap Completion Progress",
+                            color = LightGray,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "$completedCount/$totalCount Milestones",
+                            color = PureWhite,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { completedCount.toFloat() / totalCount },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
                         color = GlowingAmber,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                        trackColor = Slate700
                     )
                 }
             }
         }
 
-        if (totalCount > 0) {
-            item {
-                // Progress Tracker Card
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Slate800),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+        // 2. Custom M3 Horizontal Sub-Navigation Tabs
+        item {
+            ScrollableTabRow(
+                selectedTabIndex = selectedSubTab,
+                containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                contentColor = GlowingAmber,
+                edgePadding = 0.dp,
+                indicator = { tabPositions ->
+                    if (selectedSubTab < tabPositions.size) {
+                        TabRowDefaults.SecondaryIndicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedSubTab]),
+                            color = GlowingAmber
+                        )
+                    }
+                }
+            ) {
+                val subTabs = listOf(
+                    "Placement Landscape",
+                    "Semester Plan",
+                    "Study Material",
+                    "Internships & Timeline"
+                )
+                subTabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedSubTab == index,
+                        onClick = { selectedSubTab = index },
+                        text = {
+                            Text(
+                                text = title,
+                                fontSize = 12.sp,
+                                fontWeight = if (selectedSubTab == index) FontWeight.Bold else FontWeight.Medium
+                            )
+                        },
+                        selectedContentColor = GlowingAmber,
+                        unselectedContentColor = Slate600
+                    )
+                }
+            }
+        }
+
+        // 3. Conditional Content Based on Sub-Tabs
+        when (selectedSubTab) {
+            0 -> {
+                // Sub-Tab 0: Placement Landscape
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Slate800),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(BorderStroke(1.dp, Slate700.copy(alpha = 0.5f)), RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
-                            Text(
-                                text = "Milestones Achieved",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
-                            Text(
-                                text = "$completedCount of $totalCount",
-                                color = GlowingAmber,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 16.sp
-                            )
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = "BITS DUBAI PLACEMENT LANDSCAPE (2023-2025)",
+                                    color = GlowingAmber,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.8.sp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Steady placement growth on campus, showing a clear shift towards CSE and AI-related recruiters.",
+                                    color = LightGray,
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Custom Elegant Grid Table
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .border(BorderStroke(1.dp, Slate700), RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(8.dp))
+                                ) {
+                                    // Table Header
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(Slate700)
+                                            .padding(8.dp)
+                                    ) {
+                                        Text(text = "Metric", modifier = Modifier.weight(1.5f), color = PureWhite, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        Text(text = "2023", modifier = Modifier.weight(1f), color = PureWhite, fontWeight = FontWeight.Bold, fontSize = 11.sp, textAlign = TextAlign.Center)
+                                        Text(text = "2024", modifier = Modifier.weight(1f), color = PureWhite, fontWeight = FontWeight.Bold, fontSize = 11.sp, textAlign = TextAlign.Center)
+                                        Text(text = "2025", modifier = Modifier.weight(1f), color = PureWhite, fontWeight = FontWeight.Bold, fontSize = 11.sp, textAlign = TextAlign.Center)
+                                    }
+                                    
+                                    val rows = listOf(
+                                        Triple("Companies Visiting", "128", "152" to "155"),
+                                        Triple("Students Interviewed", "401", "697" to "727"),
+                                        Triple("Total Offers", "136", "146" to "154")
+                                    )
+
+                                    rows.forEachIndexed { idx, row ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(if (idx % 2 == 0) Slate800 else Slate700.copy(alpha = 0.3f))
+                                                .padding(8.dp)
+                                        ) {
+                                            Text(text = row.first, modifier = Modifier.weight(1.5f), color = LightGray, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                            val val2023 = row.second
+                                            val val2024 = row.third.first
+                                            val val2025 = row.third.second
+                                            
+                                            Text(text = val2023, modifier = Modifier.weight(1f), color = PureWhite, fontSize = 11.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
+                                            Text(text = val2024, modifier = Modifier.weight(1f), color = PureWhite, fontSize = 11.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
+                                            Text(text = val2025, modifier = Modifier.weight(1f), color = GlowingAmber, fontSize = 11.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.Black)
+                                        }
+                                    }
+                                }
+                            }
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        val progressValue = if (totalCount > 0) completedCount.toFloat() / totalCount else 0.0f
-                        LinearProgressIndicator(
-                            progress = { progressValue },
-                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Slate800),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(BorderStroke(1.dp, Slate700.copy(alpha = 0.5f)), RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Star, contentDescription = "Recruiters", tint = GlowingAmber, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "KEY ANNUAL RECRUITERS",
+                                        color = PureWhite,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Recruiters that consistently hire on-campus every year:",
+                                    color = LightGray,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                val recruiters = listOf("ESRI", "Kema", "Schindler", "Zomato", "Dabur International", "Sharaf DG")
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(recruiters) { recruiter ->
+                                        Box(
+                                            modifier = Modifier
+                                                .background(Slate700, RoundedCornerShape(8.dp))
+                                                .border(BorderStroke(1.dp, Slate600.copy(alpha = 0.2f)), RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(
+                                                text = recruiter,
+                                                color = PureWhite,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Slate800),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(BorderStroke(1.dp, Slate700.copy(alpha = 0.5f)), RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Refresh, contentDescription = "AI Growth", tint = GlowingAmber, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "STANDOUT AI-ERA PLACEMENT TRENDS",
+                                        color = PureWhite,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(10.dp))
+                                
+                                // Deriv Scale Highlight
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(GlowingAmber.copy(alpha = 0.05f))
+                                        .border(BorderStroke(1.dp, GlowingAmber.copy(alpha = 0.2f)), RoundedCornerShape(8.dp))
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = "Scale", tint = GlowingAmber, modifier = Modifier.size(24.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = "Deriv Placement Scaling Surge",
+                                            color = PureWhite,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                        Text(
+                                            text = "Scaled rapidly to make 23 final offers out of 50 interviewed students in 2025. Excellent placement option.",
+                                            color = LightGray,
+                                            fontSize = 11.sp,
+                                            lineHeight = 15.sp
+                                        )
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "New AI-focused entrants hiring BITS Dubai grads in 2025 (excellent target list):",
+                                    color = LightGray,
+                                    fontSize = 11.sp
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                val aiEntrants = listOf("CAMB.AI", "Dalil AI", "Sherloq AI", "Spark AI", "TOR.ai")
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(aiEntrants) { aiFirm ->
+                                        Box(
+                                            modifier = Modifier
+                                                .background(GlowingAmber.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                                                .border(BorderStroke(1.dp, GlowingAmber), RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(
+                                                text = aiFirm,
+                                                color = GlowingAmber,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Black
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            1 -> {
+                // Sub-Tab 1: Semester Plan
+                val stages = listOf(
+                    RoadmapStageItem(
+                        id = "sem_3_4",
+                        title = "Semester 3-4 (Now) — Foundations",
+                        focus = "Math & CS Foundations",
+                        actions = "Math (linear algebra, probability, calculus); strong Python; Data Structures & Algorithms (DSA) basics; core Computer Science concepts (OS, DBMS, OOP)"
+                    ),
+                    RoadmapStageItem(
+                        id = "sem_4_5",
+                        title = "Semester 4-5 — Core ML/DL",
+                        focus = "Deep Machine Learning",
+                        actions = "Andrew Ng ML Specialization on Coursera; master PyTorch; submit your first Kaggle competition entry"
+                    ),
+                    RoadmapStageItem(
+                        id = "sem_5_6",
+                        title = "Semester 5-6 — Specialize + Build",
+                        focus = "Domain Selection & Project Portfolios",
+                        actions = "Pick a special lane (NLP/LLMs, Computer Vision, or MLOps); build 2 original projects & deploy at least 1; read & replicate a peer-reviewed paper"
+                    ),
+                    RoadmapStageItem(
+                        id = "sem_6_7",
+                        title = "Semester 6-7 — Internships & Depth",
+                        focus = "Professional Work Experience",
+                        actions = "Apply aggressively to summer/research internships; contribute code to an open-source ML repository"
+                    ),
+                    RoadmapStageItem(
+                        id = "sem_7_8",
+                        title = "Semester 7-8 — Placement Prep",
+                        focus = "High-Stress Placement Readiness",
+                        actions = "Polish GitHub portfolios & technical write-ups; practice ML system design architecture alongside rigorous DSA grids"
+                    )
+                )
+
+                items(stages) { stage ->
+                    val isChecked = checkedItems.contains(stage.id)
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Slate800),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                BorderStroke(
+                                    1.dp,
+                                    if (isChecked) GlowingAmber.copy(alpha = 0.5f) else Slate700.copy(alpha = 0.5f)
+                                ),
+                                RoundedCornerShape(16.dp)
+                            ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = { viewModel.toggleRoadmapItemChecked(stage.id) },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = GlowingAmber,
+                                    uncheckedColor = Slate600,
+                                    checkmarkColor = Slate900
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stage.title,
+                                    color = if (isChecked) GlowingAmber else PureWhite,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .background(GlowingAmber.copy(alpha = 0.08f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "FOCUS: ${stage.focus}",
+                                        color = GlowingAmber,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stage.actions,
+                                    color = LightGray,
+                                    fontSize = 11.sp,
+                                    lineHeight = 15.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            2 -> {
+                // Sub-Tab 2: Study Material
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            text = "CURATED STUDY GUIDES & BIBLIOGRAPHY",
                             color = GlowingAmber,
-                            trackColor = Slate700
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.8.sp
+                        )
+                        
+                        // Section 1: DSA
+                        StudyCategoryCard(
+                            title = "Data Structures & Algorithms",
+                            resources = listOf(
+                                StudyResourceItem("study_dsa_striver", "Striver's A2Z DSA Sheet", "Free, structured progression to master essential DSA concepts."),
+                                StudyResourceItem("study_dsa_leetcode", "LeetCode", "Consistency practice (Easy to Medium) to solve technical coding round problems."),
+                                StudyResourceItem("study_dsa_cs50", "CS50 (Harvard, free on edX)", "Excellent foundational Computer Science refresher for system thinking.")
+                            ),
+                            checkedItems = checkedItems,
+                            onToggle = { viewModel.toggleRoadmapItemChecked(it) }
+                        )
+
+                        // Section 2: ML / DL
+                        StudyCategoryCard(
+                            title = "Machine Learning & Deep Learning",
+                            resources = listOf(
+                                StudyResourceItem("study_ml_andrew_ng", "Andrew Ng's ML Specialization (Coursera)", "The gold industry standard for foundational theory & algorithms."),
+                                StudyResourceItem("study_ml_fast_ai", "fast.ai Course", "Practical, project-first, and coder-first deep learning models."),
+                                StudyResourceItem("study_ml_deeplearning", "deeplearning.ai DL Specialization", "More theory-heavy neural network foundations and math depth."),
+                                StudyResourceItem("study_ml_pytorch", "PyTorch Documentation & Tutorials", "Master the industry-standard deep learning framework.")
+                            ),
+                            checkedItems = checkedItems,
+                            onToggle = { viewModel.toggleRoadmapItemChecked(it) }
+                        )
+
+                        // Section 3: Core CS
+                        StudyCategoryCard(
+                            title = "Core CS Fundamentals",
+                            resources = listOf(
+                                StudyResourceItem("study_core_nptel", "NPTEL Courses (OS, DBMS, Computer Networks)", "Free, academic depth tailored for standard university certifications.")
+                            ),
+                            checkedItems = checkedItems,
+                            onToggle = { viewModel.toggleRoadmapItemChecked(it) }
+                        )
+
+                        // Section 4: Applied Practice
+                        StudyCategoryCard(
+                            title = "Applied Practice",
+                            resources = listOf(
+                                StudyResourceItem("study_applied_kaggle", "Kaggle Competitions", "Beginner-friendly playgrounds. Aim to place in the top 50%."),
+                                StudyResourceItem("study_applied_github", "Build 2-3 Solid GitHub Projects", "Commit clean code with proper documentation instead of half-finished ones."),
+                                StudyResourceItem("study_applied_deploy", "Deploy At Least One Live App", "Host on Hugging Face Spaces, Streamlit, or a simple serverless cloud endpoint.")
+                            ),
+                            checkedItems = checkedItems,
+                            onToggle = { viewModel.toggleRoadmapItemChecked(it) }
                         )
                     }
                 }
             }
+            3 -> {
+                // Sub-Tab 3: Internships & Timeline
+                item {
+                    Text(
+                        text = "AI-FOCUSED INTERNSHIP OPPORTUNITIES (UAE, 2026)",
+                        color = GlowingAmber,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp
+                    )
+                }
 
-            items(items) { item ->
-                RoadmapCard(item = item, onToggleStatus = { checked ->
-                    viewModel.toggleRoadmapItem(item.id, checked)
-                })
-            }
-        } else {
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 60.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.List,
-                        contentDescription = "No roadmap items",
-                        tint = Slate600,
-                        modifier = Modifier.size(64.dp)
+                val internships = listOf(
+                    InternshipItem(
+                        title = "MBZUAI UGRIP (Abu Dhabi)",
+                        offer = "AI research internship (June 1 - 26, 2026)",
+                        notes = "Highly competitive (~4% acceptance in 2025); applications open January 1; best pure-research credential in the Middle East."
+                    ),
+                    InternshipItem(
+                        title = "G42 Internship Program",
+                        offer = "AI internship & early-career technical training",
+                        notes = "UAE's flagship state-backed AI organization; provides high-scale production ML modeling experience."
+                    ),
+                    InternshipItem(
+                        title = "ADIA Lab Summer Internship",
+                        offer = "6-8 week program (June - Aug 2026) in ML/Data",
+                        notes = "Focuses on digital economics; requires valid UAE visa; 2026 deadline was April 3."
+                    ),
+                    InternshipItem(
+                        title = "Amazon / AWS Dubai",
+                        offer = "SDE & Applied Scientist intern tracks (10-12 weeks)",
+                        notes = "Recruiting starts early (Oct - Dec prior year). Candidates with cloud-deployed ML apps (SageMaker, Lambda) are strongly preferred."
+                    ),
+                    InternshipItem(
+                        title = "AI Startups (BITS Placement List)",
+                        offer = "Hands-on engineering & model-building roles",
+                        notes = "Companies like CAMB.AI, Dalil AI, Sherloq AI, and Spark AI. Often a faster, lower-friction entry point for 2nd/3rd-year students."
+                    ),
+                    InternshipItem(
+                        title = "Data Analytics Internships",
+                        offer = "Deloitte, Siemens Healthineers, GM Dubai",
+                        notes = "Regular listings posted on LinkedIn & Indeed UAE. Revisit early 2026."
+                    ),
+                    InternshipItem(
+                        title = "Ministry of Education Portal",
+                        offer = "Central database of private sector internships",
+                        notes = "Excellent national search hub to find general software and technology placements."
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Roadmap Empty",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Please complete your AI Talent Profile assessment in the 'AI Profile' tab to generate a custom roadmap.",
-                        color = LightGray.copy(alpha = 0.5f),
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = { viewModel.forceSeedDubaiCSRoadmap() },
-                        colors = ButtonDefaults.buttonColors(containerColor = GlowingAmber),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.testTag("empty_state_load_roadmap_btn")
+                )
+
+                items(internships) { intern ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Slate800),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(BorderStroke(1.dp, Slate700.copy(alpha = 0.5f)), RoundedCornerShape(16.dp)),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Load BITS Dubai CS Career Roadmap",
-                            tint = Slate900,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Load BITS CS Career Roadmap",
-                            color = Slate900,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(GlowingAmber.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                        .padding(6.dp)
+                                ) {
+                                    Icon(Icons.Default.Info, contentDescription = "Internship icon", tint = GlowingAmber, modifier = Modifier.size(16.dp))
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = intern.title,
+                                        color = PureWhite,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = intern.offer,
+                                        color = GlowingAmber,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            HorizontalDivider(color = Slate700, thickness = 1.dp)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = intern.notes,
+                                color = LightGray,
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Slate800),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(BorderStroke(1.dp, GlowingAmber.copy(alpha = 0.3f)), RoundedCornerShape(16.dp)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.DateRange, contentDescription = "Timeline", tint = GlowingAmber, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "ACTION TIMELINE (CRITICAL WINDOWS)",
+                                    color = PureWhite,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            val timelineSteps = listOf(
+                                TimelineStep("timeline_now_dec", "Now - December", "Build DSA + ML fundamentals; apply to Amazon/AWS (recruiting opens Oct-Dec)."),
+                                TimelineStep("timeline_jan", "January", "MBZUAI UGRIP applications open — submit early for best chance!"),
+                                TimelineStep("timeline_jan_apr", "January - April", "Watch ADIA Lab and other summer internship deadlines closely."),
+                                TimelineStep("timeline_summer_sem4", "Summer after Sem 4", "Target your first internship — even small/unpaid ones build a strong signal."),
+                                TimelineStep("timeline_ongoing", "Ongoing", "Track new AI recruiters appearing at BITS Dubai placements each year (Deriv, CAMB.AI, etc.).")
+                            )
+
+                            timelineSteps.forEach { step ->
+                                val isStepChecked = checkedItems.contains(step.id)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Checkbox(
+                                        checked = isStepChecked,
+                                        onCheckedChange = { viewModel.toggleRoadmapItemChecked(step.id) },
+                                        colors = CheckboxDefaults.colors(
+                                            checkedColor = GlowingAmber,
+                                            uncheckedColor = Slate600,
+                                            checkmarkColor = Slate900
+                                        ),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = step.time,
+                                            color = if (isStepChecked) GlowingAmber else PureWhite,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = step.action,
+                                            color = LightGray,
+                                            fontSize = 11.sp,
+                                            lineHeight = 15.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -2233,59 +2780,70 @@ fun RoadmapScreen(viewModel: TalentViewModel) {
     }
 }
 
-@Composable
-fun RoadmapCard(item: LearningRoadmapItem, onToggleStatus: (Boolean) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
+// Support Classes/Composables for custom Roadmap layout
+data class RoadmapStageItem(val id: String, val title: String, val focus: String, val actions: String)
+data class StudyResourceItem(val id: String, val title: String, val description: String)
+data class InternshipItem(val title: String, val offer: String, val notes: String)
+data class TimelineStep(val id: String, val time: String, val action: String)
 
+@Composable
+fun StudyCategoryCard(
+    title: String,
+    resources: List<StudyResourceItem>,
+    checkedItems: Set<String>,
+    onToggle: (String) -> Unit
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Slate800),
-        shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { expanded = !expanded }
+            .border(BorderStroke(1.dp, Slate700), RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Checkbox(
-                    checked = item.isCompleted,
-                    onCheckedChange = { onToggleStatus(it ?: false) },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = GlowingAmber,
-                        uncheckedColor = Slate600,
-                        checkmarkColor = Slate900
+            Text(
+                text = title,
+                color = PureWhite,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = Slate700, thickness = 1.dp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            resources.forEach { res ->
+                val isChecked = checkedItems.contains(res.id)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Checkbox(
+                        checked = isChecked,
+                        onCheckedChange = { onToggle(res.id) },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = GlowingAmber,
+                            uncheckedColor = Slate600,
+                            checkmarkColor = Slate900
+                        ),
+                        modifier = Modifier.size(24.dp)
                     )
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.title,
-                        color = if (item.isCompleted) LightGray.copy(alpha = 0.5f) else Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Est: ${item.estimatedHours} Hours • Track: ${item.track}",
-                        color = LightGray.copy(alpha = 0.5f),
-                        fontSize = 11.sp
-                    )
-                }
-                Icon(
-                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Toggle Description",
-                    tint = Slate600
-                )
-            }
-            AnimatedVisibility(visible = expanded) {
-                Column(modifier = Modifier.padding(top = 12.dp, start = 48.dp)) {
-                    Text(
-                        text = item.description,
-                        color = LightGray.copy(alpha = 0.8f),
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp
-                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = res.title,
+                            color = if (isChecked) GlowingAmber else PureWhite,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = res.description,
+                            color = LightGray,
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp
+                        )
+                    }
                 }
             }
         }

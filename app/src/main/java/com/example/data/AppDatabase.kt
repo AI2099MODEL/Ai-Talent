@@ -27,6 +27,9 @@ interface LearningDao {
     @Query("SELECT COUNT(*) FROM learning_roadmap")
     suspend fun getCount(): Int
 
+    @Query("SELECT COUNT(*) FROM learning_roadmap WHERE title LIKE '%CS50%'")
+    suspend fun hasCS50Course(): Int
+
     @Query("DELETE FROM learning_roadmap")
     suspend fun clearRoadmap()
 }

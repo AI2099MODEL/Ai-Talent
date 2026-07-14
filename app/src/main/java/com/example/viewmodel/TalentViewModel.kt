@@ -83,6 +83,22 @@ class TalentViewModel(application: Application) : AndroidViewModel(application) 
     val mentorMessages: StateFlow<List<MentorMessage>> = repository.mentorMessages
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    private val _checkedRoadmapItems = MutableStateFlow<Set<String>>(emptySet())
+    val checkedRoadmapItems: StateFlow<Set<String>> = _checkedRoadmapItems.asStateFlow()
+
+    fun toggleRoadmapItemChecked(itemKey: String) {
+        val current = _checkedRoadmapItems.value.toMutableSet()
+        if (current.contains(itemKey)) {
+            current.remove(itemKey)
+        } else {
+            current.add(itemKey)
+        }
+        _checkedRoadmapItems.value = current
+        sharedPrefs.edit()
+            .putStringSet("checked_roadmap_items_v2", current)
+            .apply()
+    }
+
     // UI Local States
     private val _isAssessing = MutableStateFlow(false)
     val isAssessing = _isAssessing.asStateFlow()
@@ -227,6 +243,11 @@ class TalentViewModel(application: Application) : AndroidViewModel(application) 
             _currentGradingResult.value = null
             _generatedImageBase64.value = null
             _imageGenerationError.value = null
+            try {
+                repository.seedDubaiCSRoadmap()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -645,6 +666,9 @@ class TalentViewModel(application: Application) : AndroidViewModel(application) 
         val completed = sharedPrefs.getStringSet("completed_courses_set_v2", emptySet()) ?: emptySet()
         _completedCourses.value = completed
 
+        val checkedItems = sharedPrefs.getStringSet("checked_roadmap_items_v2", emptySet()) ?: emptySet()
+        _checkedRoadmapItems.value = checkedItems
+
         val progressMap = mutableMapOf<String, Float>()
         sharedPrefs.all.forEach { (key, value) ->
             if (key.startsWith("progress_")) {
@@ -678,10 +702,10 @@ class TalentViewModel(application: Application) : AndroidViewModel(application) 
         }
         fetchLiveFeeds()
 
-        // Auto-seed BITS Dubai CS Career Roadmap if empty on startup
+        // Auto-seed BITS Dubai CS Career Roadmap if empty or lacks curated CS50 course on startup
         viewModelScope.launch {
             try {
-                if (repository.getRoadmapCount() == 0) {
+                if (repository.getRoadmapCount() == 0 || !repository.hasCS50()) {
                     repository.seedDubaiCSRoadmap()
                 }
             } catch (e: Exception) {

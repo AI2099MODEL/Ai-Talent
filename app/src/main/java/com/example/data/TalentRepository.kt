@@ -16,15 +16,6 @@ class TalentRepository(private val db: AppDatabase) {
 
     val userProfile: Flow<UserProfile?> = db.userDao().getUserProfile()
     val roadmapItems: Flow<List<LearningRoadmapItem>> = db.learningDao().getAllRoadmapItems()
-        .onStart {
-            try {
-                if (db.learningDao().getCount() == 0) {
-                    seedDubaiCSRoadmap()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
     val interviewLogs: Flow<List<InterviewLog>> = db.interviewDao().getAllInterviewLogs()
     val mentorMessages: Flow<List<MentorMessage>> = db.mentorDao().getAllMessages()
 
@@ -37,6 +28,10 @@ class TalentRepository(private val db: AppDatabase) {
 
     suspend fun getRoadmapCount(): Int {
         return db.learningDao().getCount()
+    }
+
+    suspend fun hasCS50(): Boolean {
+        return db.learningDao().hasCS50Course() > 0
     }
 
     suspend fun seedDubaiCSRoadmap() = withContext(Dispatchers.IO) {
